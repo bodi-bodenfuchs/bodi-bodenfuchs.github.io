@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bodi der Bodenfuchs – Prüfpflichten: Simulationen</title>
+<style>
+:root{--bg:#f3f0ea;--ink:#1f2328;--muted:#6b6f76;--line:#e2ddd3;--accent:#c2410c;--accent2:#9a3412}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+header{background:#22262b;color:#fff;padding:22px 20px 26px}
+.wrap{max-width:1040px;margin:0 auto}
+.hero{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.hero img{width:150px;height:auto;background:#fff;border-radius:18px;padding:8px;flex:none}
+.hero h1{margin:0 0 6px;font-size:28px;line-height:1.2}
+.hero h1 span{color:#fdba74}
+.hero p{margin:0;color:#d1d5db;max-width:620px}
+main{padding:26px 20px 40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column}
+.card .ic{font-size:34px}
+.card h2{margin:6px 0 4px;font-size:20px}
+.card .kap{font-size:13px;color:var(--muted);margin:0 0 10px}
+.card p{margin:0 0 14px;color:#374151;font-size:15px}
+.btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:650;padding:11px 16px;border-radius:10px;text-align:center}
+.btn:hover{background:var(--accent2)}
+.stations{list-style:none;padding:0;margin:14px 0 0;border-top:1px dashed var(--line)}
+.stations li a{display:flex;justify-content:space-between;padding:8px 2px;border-bottom:1px dashed var(--line);color:var(--ink);text-decoration:none;font-size:15px}
+.stations li a:hover{color:var(--accent)}
+.stations li a::after{content:"›";color:var(--accent);font-weight:700}
+.spacer{flex:1}
+.how{margin-top:26px;background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:16px 20px;font-size:15px}
+.how h3{margin:0 0 6px;font-size:16px;color:var(--accent2)}
+.how ul{margin:0;padding-left:20px}
+footer{font-size:12.5px;color:var(--muted);padding:0 20px 30px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap hero">
+    <img src="bodi-logo.png" alt="Bodi der Bodenfuchs – Prüfpflichten">
+    <div>
+      <h1>Prüfpflichten des Bodenlegers · <span>Simulationen</span></h1>
+      <p>Übe die Prüfungen des Untergrunds Schritt für Schritt: Material in der richtigen Reihenfolge wählen, messen, ablesen und beurteilen. Funktioniert am PC, Tablet und Handy – ohne Anmeldung.</p>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div class="grid">
+    <section class="card">
+      <div class="ic">💧</div>
+      <h2>Untergrund prüfen</h2>
+      <p class="kap">Skriptum Kapitel 4.3 und 4.4.2</p>
+      <p>Alle Feuchte-Messungen und die Haftzugprüfung in einer Simulation.</p>
+      <a class="btn" href="untergrund.html#cm">Simulation starten</a>
+      <ul class="stations">
+        <li><a href="untergrund.html#cm">CM-Messung</a></li>
+        <li><a href="untergrund.html#fk">CM-Funktionskontrolle</a></li>
+        <li><a href="untergrund.html#krl">KRL-Messung</a></li>
+        <li><a href="untergrund.html#darr">Darr-Methode</a></li>
+        <li><a href="untergrund.html#hz">Haftzugprüfung</a></li>
+      </ul>
+    </section>
+    <section class="card">
+      <div class="ic">⚖️</div>
+      <h2>Darr-Methode &amp; Haftzugprüfung</h2>
+      <p class="kap">Skriptum Kapitel 4.3.6 und 4.4.2</p>
+      <p>Die beiden Prüfungen durch Sachverständige: Labor-Feuchtemessung und Haftzugfestigkeit.</p>
+      <a class="btn" href="darr-haftzug.html#darr">Simulation starten</a>
+      <ul class="stations">
+        <li><a href="darr-haftzug.html#darr">Darr-Methode</a></li>
+        <li><a href="darr-haftzug.html#hz">Haftzugprüfung</a></li>
+      </ul>
+    </section>
+    <section class="card">
+      <div class="ic">🧱</div>
+      <h2>Risse kraftschlüssig verschließen</h2>
+      <p class="kap">Skriptum Kapitel 4.2 und 4.6</p>
+      <p>Risse und Fugen beurteilen, mit Gießharz verdübeln oder mit der Rissbrücke überbrücken.</p>
+      <a class="btn" href="risse.html#check">Simulation starten</a>
+      <ul class="stations">
+        <li><a href="risse.html#check">1 · Riss beurteilen</a></li>
+        <li><a href="risse.html#kr">2 · Verdübeln (UZIN KR 416)</a></li>
+        <li><a href="risse.html#rr">3 · Rissbrücke (UZIN RR 203)</a></li>
+      </ul>
+    </section>
+  </div>
+  <div class="how">
+    <h3>So übst du</h3>
+    <ul>
+      <li>Schalte „Hilfe anzeigen“ zuerst <b>aus</b> und versuche, ohne Fehler durchzukommen.</li>
+      <li>Materialien antippen oder auf das Gerät ziehen – Achtung, es liegen auch falsche Dinge am Tisch!</li>
+      <li>Am Ende bekommst du eine Auswertung mit Protokoll. Trag deine Ergebnisse ins Skriptum ein.</li>
+    </ul>
+  </div>
+</main>
+<footer class="wrap">Landesberufsschule Graz 3 · Lehrberuf Bodenleger/in · Grundlage: Skriptum „Die Prüfpflichten des Bodenlegers“ (ÖNORM B 5236:2026-09, ÖNORM B 2236, BEB-Merkblatt 9.1, FCIÖ-Merkblatt 18, UZIN-Produktdatenblätter). Die Messwerte in den Simulationen sind simuliert.</footer>
+</body>
+</html>
