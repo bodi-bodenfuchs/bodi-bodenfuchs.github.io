@@ -110,6 +110,66 @@
     #stage{height:58vh;min-height:340px}
     details{max-height:none}
   }
+
+  /* ---------- Responsive ---------- */
+  .prodsel{display:none;width:100%;font:inherit;font-size:1rem;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
+  #guideBtn .short{display:none}
+  @media (max-width:1100px) and (min-width:901px){
+    main{grid-template-columns:minmax(0,1fr) 340px;gap:10px;padding:0 12px 14px}
+    header,.products{padding-left:12px;padding-right:12px}
+    .modes button{padding:10px 1px;font-size:.84rem}
+    .modes button small{display:none}
+  }
+  @media (max-width:900px) and (min-width:701px){
+    body{display:block}
+    main{display:block;padding:0 14px 16px}
+    #stage{position:sticky;top:0;z-index:6;height:52vh;height:52svh;margin-bottom:12px}
+    header,.products{padding-left:14px;padding-right:14px}
+  }
+  @media (max-width:700px){
+    body{display:block}
+    header{padding:10px 12px 6px;gap:4px 10px;align-items:center;flex-wrap:nowrap}
+    header h1{font-size:1.1rem}
+    header p{display:none}
+    #guideBtn{padding:6px 10px;font-size:.88rem;white-space:nowrap}
+    #guideBtn .long{display:none}#guideBtn .short{display:inline}
+    .products{padding:2px 12px 8px}
+    .products .prow{display:none}
+    .prodsel{display:block}
+    main{display:block;padding:0 10px 14px}
+    #stage{position:sticky;top:0;z-index:6;height:46vh;height:46svh;min-height:250px;border-radius:12px;margin-bottom:10px;box-shadow:0 6px 14px rgba(0,0,0,.08)}
+    #stageHint{display:none}
+    #views{top:6px;right:6px;gap:4px}
+    #views button{padding:3px 7px;font-size:.74rem}
+    #banner{top:40px;max-width:94%;padding:7px 10px;font-size:.84rem}
+    .lbl{font-size:.75rem}.lbl .dot{min-width:20px;height:20px;font-size:.72rem}
+    .modes button{padding:10px 2px;font-size:.82rem}
+    .modes button small{display:none}
+    .pane{padding:12px}
+    .card{padding:10px;font-size:.92rem}
+    label.ctl{flex-wrap:wrap}
+    label.ctl input[type=range]{min-width:180px}
+    details{max-height:none}
+    .guide{padding:0}
+    .guide-box{border-radius:0;min-height:100%;padding:16px 14px}
+    .guide-box h2{font-size:1.15rem}
+    .guide-box table,.guide-box tbody,.guide-box tr,.guide-box td{display:block;width:100%}
+    .guide-box tr:first-child{display:none}
+    .guide-box tr{border-bottom:1px solid var(--line);padding:8px 0}
+    .guide-box td{border:0;padding:3px 0}
+    .guide-box td:first-child{float:left;width:auto;margin-right:8px}
+  }
+  @media (max-height:520px) and (orientation:landscape){
+    body{display:block}
+    header p,#stageHint{display:none}
+    .products .prow{display:none}.prodsel{display:block}
+    main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px;height:auto;padding:0 10px 10px}
+    #stage{position:sticky;top:0;height:94vh;height:94svh;min-height:0;margin:0}
+    header{padding:6px 10px}
+    aside{max-height:none}
+    .modes button{padding:9px 1px;font-size:.78rem}
+    .modes button small{display:none}
+  }
 </style>
 </head>
 <body>
@@ -474,7 +534,8 @@ function buildProduct(){
   });
 }
 function stackPos(m,ex){const b=m.userData.b,n=meshes.length;return new THREE.Vector3((b-(n-1)/2)*ex*.34,m.userData.baseY+b*ex*.42,0)}
-function scatterPos(k,n){const side=k%2===0?-1:1,row=Math.floor(k/2),rows=Math.ceil(n/2);return new THREE.Vector3(side*5.9,0,(row-(rows-1)/2)*2.15)}
+function scatterPos(k,n){if(ASP()<1.05){const side=k%2===0?-1:1,row=Math.floor(k/2);return new THREE.Vector3((row%2?.35:-.35),0,side*(2.35+row*1.85))}
+  const side=k%2===0?-1:1,row=Math.floor(k/2),rows=Math.ceil(n/2);return new THREE.Vector3(side*5.9,0,(row-(rows-1)/2)*2.15)}
 function setTargets(){
   meshes.forEach(m=>{
     const u=m.userData;if(u.dragging)return;
@@ -492,6 +553,8 @@ function modelBox(){const b=new THREE.Box3();meshes.forEach(m=>{const u=m.userDa
 function aimCamera(v){
   if(v)view=v;
   const aspect=ASP(),k=Math.max(1,1.55/aspect);
+  if(mode==='build'&&aspect<1.05){view='schraeg';const n=meshes.length,zmax=2.35+Math.ceil(n/2)*1.85,t=Math.tan(19*Math.PI/180);const d=Math.max(2.9/(t*aspect),(zmax+.9)/t*.74,9);
+    camGoal={pos:new THREE.Vector3(0,.9*d,.43*d),tgt:new THREE.Vector3(0,0,0)};renderViews();return}
   if(mode==='build'){view='schraeg';const d=Math.max(14,9.4/(Math.tan(19*Math.PI/180)*aspect));
     camGoal={pos:new THREE.Vector3(0,.69*d,.72*d),tgt:new THREE.Vector3(0,0,.3)};renderViews();return}
   const box=modelBox(),c=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
@@ -534,6 +597,10 @@ function stars(err){const n=err===0?3:err<=2?2:1;return `<span class="stars">${'
 const prodNav=$('#products');
 function renderNav(){
   prodNav.innerHTML='';let lastG=null,row=null;
+  const GN={elastisch:'Lehrbuch-Aufbauten',skript:'Skriptum Heft 1',verlegung:'Heft 2 · Verlegung',forbo:'Forbo Flooring',inku:'INKU-Sortiment',parkett:'Parkett'};
+  const sel=document.createElement('select');sel.className='prodsel';sel.setAttribute('aria-label','Belag wählen');let og=null,lg=null;
+  PRODUCTS.forEach((p,i)=>{if(p.group!==lg){lg=p.group;og=document.createElement('optgroup');og.label=GN[p.group]||p.group;sel.appendChild(og)}const o=document.createElement('option');o.value=i;o.textContent=(i+1)+' · '+p.short;if(i===P)o.selected=true;og.appendChild(o)});
+  sel.onchange=()=>selectProduct(+sel.value);prodNav.appendChild(sel);
   PRODUCTS.forEach((p,i)=>{
     if(p.group!==lastG){lastG=p.group;row=document.createElement('div');row.className='prow';prodNav.appendChild(row);
       const g=document.createElement('span');g.className='grp';g.textContent=p.group==='parkett'?'Parkett · Herstellerangaben':'Elastische Beläge';row.appendChild(g)}
@@ -571,7 +638,7 @@ function setMode(m){
     renderName();
   }
   setTargets();aimCamera(m==='build'?'schraeg':'schraeg');
-  $('#stageHint').textContent=m==='build'?'Teile ziehen und auf der hellen Fläche ablegen – oder antippen · Ziehen auf leerer Fläche = drehen':'Ziehen = drehen · Mausrad/2 Finger = zoomen · Rechtsklick/3 Finger = verschieben';
+  $('#stageHint').textContent=(matchMedia('(pointer:coarse)').matches&&m!=='build')?'Wischen = drehen · zwei Finger = zoomen':m==='build'?'Teile ziehen und auf der hellen Fläche ablegen – oder antippen · Ziehen auf leerer Fläche = drehen':'Ziehen = drehen · Mausrad/2 Finger = zoomen · Rechtsklick/3 Finger = verschieben';
 }
 const LEVELS={build:{leicht:'Namenskarten, Namen beim Darüberfahren im Modell, ausführliche Hinweise, Tipps.',mittel:'Namenskarten, Hinweise und Tipps – im Modell keine Namen.',schwer:'Keine Namenskarten, keine Tipps: Erkenne die Schichten nur am Aussehen und ziehe sie im Modell auf die Fläche.'},
   name:{leicht:'Antworten mit Farbmuster.',mittel:'Nur die Namen der Schichten dieses Belags.',schwer:'Zusätzlich falsche Antworten aus anderen Belägen.'}};
@@ -775,7 +842,7 @@ const v3=new THREE.Vector3();
 function proj(x,y,z){v3.set(x,y,z).project(camera);return v3.z>1?null:[(v3.x*.5+.5)*stage.clientWidth,(-v3.y*.5+.5)*stage.clientHeight]}
 function updateLabels(){
   let html='';
-  if(mode==='build'&&placed===0){const p=proj(0,.01,1.55);if(p)html+=`<div class="lbl zone" style="left:${p[0]}px;top:${p[1]}px">hier aufbauen</div>`}
+  if(mode==='build'&&placed===0){const p=proj(0,.01,ASP()<1.05?.95:1.55);if(p)html+=`<div class="lbl zone" style="left:${p[0]}px;top:${p[1]}px">hier aufbauen</div>`}
   meshes.forEach(m=>{
     const u=m.userData,ly=u.ly;let content=null,cls='';
     if(mode==='explore'&&showLabels)content=`<span class="dot">${ly.n}</span>`;
@@ -792,7 +859,7 @@ function updateLabels(){
 }
 function ASP(){const w=stage.clientWidth,h=stage.clientHeight;return (w>20&&h>20)?w/h:1.5}
 function resize(){const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
-window.addEventListener('resize',()=>{resize();aimCamera()});
+let lastPortrait=ASP()<1.05;window.addEventListener('resize',()=>{resize();const pt=ASP()<1.05;if(pt!==lastPortrait){lastPortrait=pt;if(mode==='build')setTargets()}aimCamera()});
 
 const clock=new THREE.Clock();let time=0;
 function loop(){
