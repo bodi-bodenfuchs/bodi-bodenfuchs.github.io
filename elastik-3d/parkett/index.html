@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parkett im Schichtaufbau – 3D-Baukasten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f1ec; --panel:#fffdf9; --ink:#2b2620; --muted:#6f665b; --line:#e3ddd3;
+    --accent:#b5652b; --accent-soft:#f6e7da; --ok:#2f7d4f; --ok-soft:#e1f1e6; --err:#b83a2e; --err-soft:#f8e1de;
+    --blue:#2d5d8f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,sans-serif;font-size:16px}
+  body{display:flex;flex-direction:column}
+  header{padding:12px 20px 6px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+  header h1{font-size:1.35rem;margin:0;font-weight:700;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);font-size:.95rem}
+  .products{display:flex;flex-direction:column;gap:6px;padding:4px 20px 12px}
+  .prow{display:flex;gap:8px;overflow-x:auto;align-items:center}
+  .products .grp{flex:0 0 140px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;line-height:1.2}
+  .products button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 11px;border-radius:10px;font:inherit;font-size:.92rem;cursor:pointer;display:flex;gap:8px;align-items:center}
+  .products button .nr{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.78rem}
+  .products button.park .nr{background:#e5ecdf;color:#4f6b3a}
+  .products button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .products button.active .nr{background:#fff;color:var(--ink)}
+  main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:14px;padding:0 20px 20px}
+  #stage{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(#ebe6de,#d7cfc2);border:1px solid var(--line);min-height:420px}
+  #stage canvas{display:block;width:100%;height:100%;touch-action:none}
+  #stage.dragover{outline:3px dashed var(--accent);outline-offset:-6px}
+  #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .lbl{position:absolute;transform:translate(0,-50%);display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:.85rem;font-weight:600}
+  .lbl .dot{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--ink);color:#fff;font-size:.8rem;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .lbl .txt{background:rgba(255,253,249,.92);padding:2px 8px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .lbl.q .dot{background:var(--accent);animation:pulse 1s infinite}
+  .lbl.zone{transform:translate(-50%,-50%);font-size:.8rem;color:var(--muted);font-weight:600;background:rgba(255,253,249,.7);padding:2px 8px;border-radius:6px}
+  @keyframes pulse{50%{transform:scale(1.15)}}
+  #tooltip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;padding:4px 9px;border-radius:6px;font-size:.85rem;display:none;white-space:nowrap;z-index:3}
+  #stageHint{position:absolute;left:12px;bottom:10px;font-size:.8rem;color:var(--muted);background:rgba(255,253,249,.85);padding:3px 8px;border-radius:6px}
+  #views{position:absolute;right:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+  #views button{border:1px solid var(--line);background:rgba(255,253,249,.92);border-radius:8px;padding:5px 9px;font:inherit;font-size:.82rem;cursor:pointer;color:var(--ink)}
+  #views button:hover{border-color:var(--ink)}
+  #views button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  #banner{position:absolute;left:50%;top:52px;transform:translateX(-50%);max-width:88%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:.95rem;display:none;text-align:center;z-index:2}
+  #banner.ok{border-color:#9fd0b0;background:var(--ok-soft)}
+  #banner.err{border-color:#e6aaa3;background:var(--err-soft)}
+  aside{background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .modes{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+  .modes button{border:0;background:none;padding:11px 6px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
+  .modes button.active{color:var(--ink);border-bottom-color:var(--accent)}
+  .modes button small{display:block;font-weight:400;font-size:.75rem}
+  .pane{padding:14px 16px;overflow-y:auto;flex:1}
+  .pane h2{font-size:1.1rem;margin:0 0 4px}
+  .pane h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 8px}
+  .maker{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:#4f6b3a;font-weight:700}
+  .muted{color:var(--muted)}
+  .levels{display:flex;align-items:center;gap:6px;margin:10px 0 4px;font-size:.9rem}
+  .levels .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .levels .seg button{border:0;background:#fff;padding:6px 11px;font:inherit;font-size:.88rem;cursor:pointer;color:var(--ink)}
+  .levels .seg button+button{border-left:1px solid var(--line)}
+  .levels .seg button.on{background:var(--accent);color:#fff}
+  .lvlinfo{font-size:.82rem;color:var(--muted);margin:2px 0 6px}
+  .task{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.95rem;margin:8px 0 4px}
+  .cards{display:flex;flex-direction:column;gap:7px}
+  .card{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 11px;font:inherit;font-size:.95rem;cursor:pointer;color:var(--ink)}
+  .card[draggable=true]{cursor:grab}
+  .card:hover{border-color:var(--accent)}
+  .card .sw{flex:0 0 auto;width:30px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.15);background-size:cover}
+  .card.done{background:var(--ok-soft);border-color:#b9dcc5;cursor:default}
+  .card.wrong{animation:shake .35s;border-color:var(--err);background:var(--err-soft)}
+  .card.sel{border-color:var(--blue);box-shadow:0 0 0 2px rgba(45,93,143,.2)}
+  .card .n{flex:0 0 auto;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:.8rem;font-weight:700}
+  .card .tag{margin-left:auto;font-size:.72rem;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;white-space:nowrap}
+  @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .stack{display:flex;flex-direction:column-reverse;gap:4px}
+  .slot{border:1px dashed #cfc6b8;border-radius:8px;padding:6px 10px;font-size:.88rem;color:var(--muted);min-height:32px;display:flex;align-items:center;gap:8px}
+  .slot .sw{width:26px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.15);background-size:cover;flex:0 0 auto}
+  .slot.filled{border-style:solid;border-color:#b9dcc5;background:var(--ok-soft);color:var(--ink)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font:inherit;font-size:.92rem;cursor:pointer;color:var(--ink)}
+  .btn:hover{border-color:var(--ink)}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .stats{display:flex;gap:14px;font-size:.9rem;margin-top:6px;flex-wrap:wrap}
+  .stats b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+  .info{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;margin-top:12px}
+  .info h4{margin:0 0 6px;font-size:1.05rem;display:flex;gap:8px;align-items:center}
+  .info p{margin:6px 0;font-size:.95rem;line-height:1.4}
+  .info .lab{font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);display:block;margin-top:8px}
+  .info .badge{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-size:.85rem;flex:0 0 auto}
+  label.ctl{display:flex;align-items:center;gap:10px;font-size:.92rem;margin:8px 0}
+  input[type=range]{flex:1;accent-color:var(--accent)}
+  .facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.92rem;margin:8px 0}
+  .facts dt{color:var(--muted)}
+  .facts dd{margin:0}
+  details{border-top:1px solid var(--line);padding:10px 16px;max-height:45%;overflow-y:auto}
+  details summary{cursor:pointer;font-weight:600}
+  details p{font-size:.93rem;line-height:1.45;margin:8px 0}
+  details a{color:var(--blue)}
+  .merke{border-left:4px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 8px 8px 0;font-size:.93rem;margin:10px 0}
+  .credit{font-size:.78rem;color:var(--muted)}
+  .answers{display:grid;grid-template-columns:1fr;gap:7px}
+  .done-box{background:var(--ok-soft);border:1px solid #b9dcc5;border-radius:12px;padding:12px 14px;margin-top:12px}
+  .stars{font-size:1.4rem;letter-spacing:2px;color:#d79a1e}
+  .stars .off{color:#d9d2c6}
+  @media (max-width:900px){
+    body{display:block}
+    main{grid-template-columns:1fr}
+    #stage{height:58vh;min-height:340px}
+    details{max-height:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Parkett im Schichtaufbau</h1>
+  <p>3D-Baukasten nach Herstellerangaben (Bauwerk, Scheucher, Weitzer)</p>
+</header>
+<nav class="products" id="products"></nav>
+<main>
+  <div id="stage">
+    <div id="labels"></div>
+    <div id="tooltip"></div>
+    <div id="views"></div>
+    <div id="banner"></div>
+    <div id="stageHint"></div>
+  </div>
+  <aside>
+    <div class="modes" id="modes">
+      <button data-mode="build">Bauen<small>Schichten stapeln</small></button>
+      <button data-mode="explore">Erkunden<small>Aufbau ansehen</small></button>
+      <button data-mode="name">Benennen<small>Wissen prüfen</small></button>
+    </div>
+    <div class="pane" id="pane"></div>
+    <details id="about">
+      <summary>Über diesen Belag</summary>
+      <div id="aboutBody"></div>
+    </details>
+  </aside>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+if(!window.THREE||!THREE.OrbitControls){document.getElementById('stage').innerHTML='<p style="padding:20px">Die 3D-Bibliothek konnte nicht geladen werden. Bitte Seite neu laden oder Internetverbindung prüfen.</p>';throw new Error('three.js fehlt')}
+/* =========================================================
+   DATEN: Produkte und Schichten (Nummer 1 = oberste Schicht,
+   wie in den Abbildungen). Elastische Beläge nach Lehrbuch-
+   abbildungen, Parkett nach Herstellerdatenblättern.
+   ========================================================= */
+const PRODUCTS = [
+{
+  group:"parkett",maker:"Bauwerk Parkett",short:"Bauwerk Studiopark",
+  title:"Bauwerk Studiopark – 2-Schicht-Parkett",
+  credit:"Angaben nach Produktdatenblatt Bauwerk Parkett (Studiopark, Art.-Nr. 10143169)",
+  intro:"Zweischicht-Parkett: Eine Nutzschicht aus Eiche sitzt auf einer HDF-Unterlage. Das Parkett wird vollflächig mit dem Unterboden verklebt.",
+  facts:[["Format","1700 × 150 × 9,5 mm"],["Schichten","2"],["Nutzschicht","2,5 mm Eiche"],["Verbindung","Nut + Kamm"],["Verlegung","verklebt mit Unterboden"],["Oberfläche","z. B. matt versiegelt, gebürstet"]],
+  merke:"Beim 2-Schicht-Parkett ersetzt die Unterlage Mittellage und Gegenzug. Die vollflächige Verklebung mit dem Untergrund hält das Element zusätzlich formstabil.",
+  sources:[["Bauwerk – Produktdatenblatt Studiopark","https://www.bauwerk-parkett.com/ch-de/parkett-und-zubehoer/10143169.pdf"]],
+  layers:[
+    {n:1,name:"Oberflächenbehandlung (Versiegelung)",tex:"clearWarm",t:.035,clear:true,mm:.1,mmEst:true,
+     desc:"Werkseitig aufgebrachte, matte Lackversiegelung auf der gebürsteten Eiche.",
+     func:"Schützt das Holz vor Schmutz, Flüssigkeiten und Abnutzung und erleichtert die Reinigung."},
+    {n:2,name:"Nutzschicht aus Eiche",tex:"oak",t:.15,mm:2.5,
+     desc:"Massive Edelholzschicht aus Eiche, ca. 2,5 mm dick.",
+     func:"Sichtbare, begehbare Holzoberfläche. Sie kann bei Abnutzung abgeschliffen und neu behandelt werden."},
+    {n:3,name:"HDF-Unterlage mit Nut und Kamm",tex:"hdf",t:.38,mm:7,mmEst:true,profile:"nf",
+     desc:"Hochdichte Faserplatte als Träger. Die Kanten sind als Nut und Kamm profiliert.",
+     func:"Trägt die Nutzschicht, macht das Element formstabil und verbindet die Elemente beim Verkleben passgenau."}
+  ]
+},
+{
+  group:"parkett",maker:"Bauwerk Parkett",short:"Bauwerk Casapark",
+  title:"Bauwerk Casapark 181 – 3-Schicht-Landhausdiele",
+  credit:"Angaben nach Produktdatenblatt Bauwerk Parkett (Casapark 181)",
+  intro:"Dreischichtige Landhausdiele aus Eiche: Nutzschicht, quer liegende Mittellage aus Kiefer und Unterlage aus Fichte/Tanne. Standardmäßig vollflächig verklebt; eine Klick-Variante (5G) gibt es für die schwimmende Verlegung.",
+  facts:[["Format","2200 × 181 × 14 mm"],["Schichten","3"],["Nutzschicht","3,5 mm Eiche (Europa)"],["Mittellage","Kiefer (Europa)"],["Unterlage","Fichte / Tanne (Europa)"],["Verbindung","Nut + Kamm"],["Verlegung","verklebt mit Unterboden"]],
+  merke:"3-Schicht-Parkett ist „abgesperrt“: Die Mittellage liegt quer zur Nutzschicht und zur Unterlage. So wird das Quellen und Schwinden des Holzes gebremst und die Diele bleibt formstabil.",
+  sources:[["Bauwerk – Produktdatenblatt Casapark 181","https://bauwerk-parkett.com/de-de/parkett-und-zubehoer/10021313.pdf"]],
+  layers:[
+    {n:1,name:"Oberfläche naturgeölt",tex:"oilFinish",t:.03,clear:true,mm:.05,mmEst:true,
+     desc:"In das Holz eingezogenes Naturöl, keine geschlossene Lackschicht.",
+     func:"Schützt die Holzporen, lässt die Oberfläche natürlich wirken und ist partiell ausbesserbar."},
+    {n:2,name:"Nutzschicht aus Eiche",tex:"oak",t:.18,mm:3.5,
+     desc:"Massive Eichenschicht, ca. 3,5 mm dick.",
+     func:"Sichtbare Holzoberfläche; kann mehrfach abgeschliffen und renoviert werden."},
+    {n:3,name:"Mittellage aus Kiefer (quer liegend)",tex:"pineLam",t:.42,mm:8.5,mmEst:true,profile:"nf",
+     desc:"Lamellen aus Kiefernholz, quer zur Längsrichtung der Diele verleimt, mit Nut-und-Kamm-Profil.",
+     func:"Sperrt die Bewegung des Holzes (Quellen/Schwinden) und trägt die Profilverbindung."},
+    {n:4,name:"Unterlage aus Fichte/Tanne (Gegenzug)",tex:"spruce",t:.1,mm:2,mmEst:true,
+     desc:"Dünne Nadelholzlage auf der Rückseite, längs verlaufend.",
+     func:"Gegenzug: gleicht die Spannung der Nutzschicht aus, damit sich die Diele nicht verwölbt."}
+  ]
+},
+{
+  group:"parkett",maker:"Scheucher Parkett",short:"Scheucher WOODflor",
+  title:"Scheucher WOODflor NOVOLOC® 5G – 3-Schicht-Parkett",
+  credit:"Angaben nach Technischem Datenblatt WOODflor NOVOLOC® 5G und Umwelt-Produktdeklaration (EPD) von Scheucher",
+  intro:"3-Schicht-Landhausdiele mit Klickverbindung NOVOLOC® 5G. Die Deckschicht besteht aus ausgewähltem Hartholz, Mittellage und Gegenzug aus Nadelholz.",
+  facts:[["Format","z. B. 14 × 222 × 2400 mm (weitere Breiten/Längen)"],["Schichten","3"],["Deckschicht","ca. 3,6 mm Hartholz"],["Mittellage","Fichte / Kiefer"],["Gegenzug","Fichte"],["Verbindung","NOVOLOC® 5G (Klick)"],["Oberflächen","SEDA, TENSEO, PUROTEC (fertig veredelt)"]],
+  merke:"Bei Klick-Systemen wie 5G wird die Längsseite eingewinkelt und die Stirnseite rastet beim Absenken ein – so lässt sich die Diele ohne Leim schwimmend verlegen.",
+  sources:[["Scheucher – Technisches Datenblatt WOODflor NOVOLOC® 5G","https://mdh.raw.de//images/PRL158000/TECHNDATENBLATT/002021110.pdf"],["Scheucher – EPD Mehrschichtparkett","https://www.baubook.info/m/Daten/Infos/SI2142685632/AT665/ID156378/EPD_Scheucher_Mehrschichtparkett.pdf"]],
+  layers:[
+    {n:1,name:"Fertig veredelte Oberfläche",tex:"clearWarm",t:.03,clear:true,mm:.1,mmEst:true,
+     desc:"Werkseitige Oberflächenbehandlung (Öl oder Lack, je nach Variante).",
+     func:"Schützt die Deckschicht; das Parkett ist nach dem Verlegen sofort nutzbar."},
+    {n:2,name:"Deckschicht aus Hartholz",tex:"oak",t:.18,mm:3.6,
+     desc:"Nutzschicht aus ausgewähltem Laubholz (Hartholz), ca. 3,6 mm dick.",
+     func:"Sichtbare Holzoberfläche, mehrfach renovierbar."},
+    {n:3,name:"Mittellage Fichte/Kiefer mit NOVOLOC® 5G",tex:"pineLam",t:.42,mm:8.4,mmEst:true,profile:"click",
+     desc:"Quer verleimte Nadelholz-Mittellage mit eingefrästem Klickprofil.",
+     func:"Sperrt das Holz gegen Verformung und verbindet die Dielen leimfrei."},
+    {n:4,name:"Gegenzug aus Fichte",tex:"spruce",t:.1,mm:2,mmEst:true,
+     desc:"Dünne Fichtenlage auf der Rückseite.",
+     func:"Gleicht Spannungen der Deckschicht aus und hält die Diele plan."}
+  ]
+},
+{
+  group:"parkett",maker:"Scheucher Parkett",short:"Scheucher BILAflor",
+  title:"Scheucher BILAflor® – 2-Schicht-Parkett",
+  credit:"Angaben nach Technischem Datenblatt BILAflor® und EPD von Scheucher",
+  intro:"Zweischichtiges Mehrschichtparkett zur vollflächigen Verklebung, hergestellt nach EN 13489. Als Stab oder Diele erhältlich und auch für Muster wie Fischgrät geeignet.",
+  facts:[["Format","11 × 90 × 1000 mm oder 11 × 70 × 500 mm"],["Schichten","2"],["Deckschicht","ca. 3,6 mm Hartholz (1-Blatt-Diele)"],["Träger","Fichte"],["Verlegung","vollflächig verklebt"],["Oberflächen","SEDA, TENSEO"]],
+  merke:"2-Schicht-Parkett muss vollflächig verklebt werden: Der Untergrund übernimmt die Aufgabe des fehlenden Gegenzugs.",
+  sources:[["Scheucher – Technisches Datenblatt BILAflor®","https://www.baubook.info/m/Daten/Infos/SI2142685598/AT87/ID156334/BILAflor_Produktdatenblatt_2023_DE.pdf"],["Scheucher – EPD Mehrschichtparkett","https://www.baubook.info/m/Daten/Infos/SI2142685632/AT665/ID156378/EPD_Scheucher_Mehrschichtparkett.pdf"]],
+  layers:[
+    {n:1,name:"Fertig veredelte Oberfläche",tex:"oilFinish",t:.03,clear:true,mm:.1,mmEst:true,
+     desc:"Werkseitige Oberflächenbehandlung.",
+     func:"Schützt die Deckschicht vor Schmutz und Abnutzung."},
+    {n:2,name:"Deckschicht aus Hartholz",tex:"oak",t:.18,mm:3.6,
+     desc:"Durchgehendes Blatt (1-Blatt-Diele) aus ausgesuchtem Hartholz, ca. 3,6 mm dick.",
+     func:"Sichtbare Nutzschicht, mehrfach abschleifbar."},
+    {n:3,name:"Träger aus Fichte",tex:"pineLam",t:.36,mm:7.3,mmEst:true,profile:"nf",
+     desc:"Trägerschicht aus Fichtenholz; Kanten mit Nut-und-Feder-Profil (üblich bei verklebtem Parkett).",
+     func:"Trägt die Deckschicht und wird vollflächig mit dem Untergrund verklebt."}
+  ]
+},
+{
+  group:"parkett",maker:"Weitzer Parkett",short:"Weitzer Diele 1400",
+  title:"Weitzer Diele 1400 – 2-Schicht-Parkett",
+  credit:"Angaben nach Technischem Datenblatt Weitzer Diele 1400",
+  intro:"Zweischichtige Diele mit Massivholz-Nutzschicht auf einem quellvergüteten Holzwerkstoff-Träger. Bei vollflächiger Verklebung besonders leise (Raumschall).",
+  facts:[["Format","1400 × 140 × 9,3 mm"],["Schichten","2"],["Nutzschicht","ca. 2,7 mm Massivholz"],["Träger","Holzwerkstoff, quellvergütet"],["Verbindung","4-seitig Nut und Feder"],["Oberflächen","ProActive+ (mattlackiert) oder ProVital finish (naturgeölt)"],["Renovierbarkeit","mehrfach abschleifbar"]],
+  merke:"„Quellvergütet“ heißt: Der Holzwerkstoff ist so behandelt, dass er bei Feuchtigkeit weniger aufquillt.",
+  sources:[["Weitzer – Technisches Datenblatt Diele 1400","https://www.weitzer-parkett.com/wp-content/uploads/2026/08/TD-Weitzer-Diele-1400_DE.pdf"]],
+  layers:[
+    {n:1,name:"Oberfläche ProActive+ / ProVital finish",tex:"clearWarm",t:.03,clear:true,mm:.1,mmEst:true,
+     desc:"Wahlweise pflegefreie, mattlackierte Oberfläche (ProActive+) oder naturgeölte Oberfläche (ProVital finish).",
+     func:"Schützt das Holz; ProActive+ wirkt wie geölt, braucht im Wohnbereich aber keine Pflege."},
+    {n:2,name:"Nutzschicht aus Massivholz",tex:"oak",t:.15,mm:2.7,
+     desc:"Massivholzschicht, ca. 2,7 mm dick.",
+     func:"Sichtbare Holzoberfläche, mehrfach abschleifbar."},
+    {n:3,name:"Träger aus quellvergütetem Holzwerkstoff",tex:"hdfLight",t:.36,mm:6.6,mmEst:true,profile:"nf",
+     desc:"Trägerplatte aus Holzwerkstoff, 4-seitig mit Nut und Feder.",
+     func:"Gibt Stabilität, quillt bei Feuchte wenig und verbindet die Dielen."}
+  ]
+},
+{
+  group:"parkett",maker:"Weitzer Parkett",short:"Weitzer Diele 1800",
+  title:"Weitzer Diele 1800 – 3-Schicht-Parkett",
+  credit:"Angaben nach Technischem Datenblatt Weitzer Diele 1800",
+  intro:"Dreischichtige Diele mit Double-Click-System. Lässt sich von einer Person schwimmend montieren, eignet sich aber auch zum Verkleben.",
+  facts:[["Format","1800 × 175 × 11 mm"],["Schichten","3"],["Nutzschicht","ca. 2,7 mm Massivholz"],["Träger","Holz mit stehenden Jahresringen"],["Verbindung","Double-Click (doppelte Verriegelung)"],["Verlegung","schwimmend oder verklebt"],["Oberflächen","ProActive+ oder ProVital finish"]],
+  merke:"Holz mit „stehenden Jahresringen“ arbeitet deutlich weniger als liegende Jahresringe – deshalb ist der Träger besonders formstabil.",
+  sources:[["Weitzer – Technisches Datenblatt Diele 1800","https://www.weitzer-parkett.com/wp-content/uploads/2026/08/TD-Weitzer-Diele-1800_DE.pdf"]],
+  layers:[
+    {n:1,name:"Oberfläche ProActive+ / ProVital finish",tex:"clearWarm",t:.03,clear:true,mm:.1,mmEst:true,
+     desc:"Pflegefreie Mattlack-Oberfläche oder naturgeölte Oberfläche.",
+     func:"Schützt die Nutzschicht und bestimmt Optik und Pflege."},
+    {n:2,name:"Nutzschicht aus Massivholz",tex:"oak",t:.15,mm:2.7,
+     desc:"Massivholzschicht, ca. 2,7 mm dick.",
+     func:"Sichtbare Holzoberfläche, renovierbar."},
+    {n:3,name:"Träger aus Holz mit stehenden Jahresringen",tex:"standing",t:.36,mm:6.8,mmEst:true,profile:"click",
+     desc:"Mittellage aus Holz mit stehenden Jahresringen und Double-Click-Profil.",
+     func:"Sehr formstabiler Kern; die doppelte Verriegelung hält die Dielen fest zusammen."},
+    {n:4,name:"Gegenzug",tex:"spruce",t:.09,mm:1.5,mmEst:true,
+     desc:"Rückseitige Holzlage (das Material wird im Datenblatt nicht genannt).",
+     func:"Gleicht die Spannung der Nutzschicht aus und verhindert Verwölben."}
+  ]
+}
+];
+
+
+/* =========================================================
+   TEXTUREN (prozedural, auf Canvas gezeichnet)
+   ========================================================= */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const texCache={}, swatchCache={};
+function hashStr(s){let h=7;for(const c of s)h=h*31+c.charCodeAt(0)|0;return h}
+function canvasTex(key,w,h,draw){
+  if(texCache[key]) return texCache[key];
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const g=c.getContext('2d');draw(g,w,h,rng(hashStr(key)));
+  swatchCache[key]=c.toDataURL();
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;texCache[key]=t;return t;
+}
+function noise(g,w,h,r,amt){const d=g.getImageData(0,0,w,h);for(let i=0;i<d.data.length;i+=4){const n=(r()-.5)*amt;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n}g.putImageData(d,0,0)}
+function grainLines(g,w,h,r,n,cols,ampMax){
+  for(let i=0;i<n;i++){
+    const y0=r()*h, amp=1+r()*ampMax, f=.002+r()*.01, ph=r()*6;
+    g.strokeStyle=cols[(r()*cols.length)|0];g.globalAlpha=.08+r()*.3;g.lineWidth=.5+r()*2;
+    g.beginPath();for(let x=0;x<=w;x+=8){const y=y0+Math.sin(x*f+ph)*amp+Math.sin(x*f*3.1)*amp*.3;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();
+  }
+  g.globalAlpha=1;
+}
+function wood(base,dark,light,opts={}){return (g,w,h,r)=>{
+  g.fillStyle=base;g.fillRect(0,0,w,h);
+  for(let i=0;i<10;i++){g.fillStyle=(r()<.5?dark:light);g.globalAlpha=.08+r()*.1;const y=r()*h;g.fillRect(0,y,w,8+r()*30)}
+  g.globalAlpha=1;
+  grainLines(g,w,h,r,170,[dark,dark,light],5);
+  if(opts.pores){for(let i=0;i<900;i++){g.fillStyle=dark;g.globalAlpha=.25+r()*.3;g.fillRect(r()*w,r()*h,3+r()*9,1)}g.globalAlpha=1}
+  if(opts.rays){for(let i=0;i<60;i++){g.fillStyle=light;g.globalAlpha=.25;g.beginPath();g.ellipse(r()*w,r()*h,6+r()*14,1.5,0,0,7);g.fill()}g.globalAlpha=1}
+  const knots=opts.knots??2;
+  for(let k=0;k<knots;k++){const cx=r()*w,cy=r()*h;g.globalAlpha=.35;g.strokeStyle=dark;for(let j=1;j<6;j++){g.lineWidth=1;g.beginPath();g.ellipse(cx,cy,j*6,j*2.2,0,0,7);g.stroke()}}
+  g.globalAlpha=1;noise(g,w,h,r,14);
+}}
+function lamellae(base,dark,stripW,vertRings){return (g,w,h,r)=>{
+  // quer liegende Lamellen: Streifen entlang der Länge (u)
+  let x=0;
+  while(x<w){const sw=stripW*(.7+r()*.6);const l=(r()-.5)*22;
+    g.fillStyle=base;g.fillRect(x,0,sw,h);
+    g.fillStyle=l>0?'rgba(255,255,255,'+(l/80)+')':'rgba(0,0,0,'+(-l/80)+')';g.fillRect(x,0,sw,h);
+    g.strokeStyle=dark;g.lineWidth=1;
+    const lines=vertRings?10:4;
+    for(let i=0;i<lines;i++){g.globalAlpha=.15+r()*.25;const xx=x+r()*sw;g.beginPath();g.moveTo(xx,0);
+      for(let y=0;y<=h;y+=16)g.lineTo(xx+Math.sin(y*.02+i)*(vertRings?1:4),y);g.stroke()}
+    g.globalAlpha=.6;g.fillStyle=dark;g.fillRect(x+sw-1.5,0,1.5,h);g.globalAlpha=1;
+    x+=sw;}
+  noise(g,w,h,r,12);
+}}
+function solid(col,amt=10){return (g,w,h,r)=>{g.fillStyle=col;g.fillRect(0,0,w,h);noise(g,w,h,r,amt)}}
+function clearTex(fill,lineCol,mode){return (g,w,h,r)=>{
+  g.fillStyle=fill;g.fillRect(0,0,w,h);
+  if(mode==='grain'){for(let i=0;i<140;i++){const y0=r()*h,a=1+r()*4,f=.003+r()*.008;g.strokeStyle=lineCol.replace('A',(.15+r()*.35).toFixed(2));g.lineWidth=.6+r()*1.4;g.beginPath();for(let x=0;x<=w;x+=10){const y=y0+Math.sin(x*f)*a;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()}}
+  else if(mode==='streak'){for(let i=0;i<20;i++){g.fillStyle=lineCol.replace('A',(.15+r()*.2).toFixed(2));g.fillRect(r()*w,0,2+r()*40,h)}}
+  else{for(let i=0;i<60;i++){g.strokeStyle=lineCol.replace('A',(.2+r()*.4).toFixed(2));g.lineWidth=1;g.beginPath();const y=r()*h;g.moveTo(0,y);g.lineTo(w,y+(r()-.5)*20);g.stroke()}}
+}}
+const TEX={
+  woodMid:wood('#a8774b','#6e4626','#c99a6c'),
+  woodOrange:wood('#c0703a','#7d3f1a','#e0965c'),
+  woodGrey:wood('#8b8780','#5a5650','#b7b2aa'),
+  woodLight:wood('#cdbfae','#9c8b77','#e6dccf'),
+  woodRustic:(g,w,h,r)=>{wood('#d9cbbb','#8a6a55','#efe6dc')(g,w,h,r);g.globalAlpha=.25;for(let i=0;i<40;i++){g.fillStyle=r()<.5?'#b86b4a':'#7a5a48';g.fillRect(r()*w,r()*h,20+r()*120,2+r()*6)}g.globalAlpha=1},
+  oak:wood('#b98b5c','#7a532f','#dcb68c',{pores:true,rays:true,knots:1}),
+  spruce:wood('#e4d0a3','#b99a62','#f3e6c6',{knots:1}),
+  pineLam:lamellae('#d8b47a','#9b7540',46,false),
+  standing:lamellae('#d3b07c','#8c6a3c',34,true),
+  clear:clearTex('rgba(235,245,250,0.35)','rgba(255,255,255,A)','line'),
+  clearBlue:clearTex('rgba(215,232,250,0.35)','rgba(255,255,255,A)','streak'),
+  clearGrain:clearTex('rgba(245,245,245,0.45)','rgba(120,120,120,A)','grain'),
+  clearWarm:clearTex('rgba(255,246,228,0.35)','rgba(255,255,255,A)','streak'),
+  oilFinish:clearTex('rgba(240,214,160,0.3)','rgba(200,160,90,A)','line'),
+  fleece:(g,w,h,r)=>{g.fillStyle='#eeeeea';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.strokeStyle='rgba(150,150,145,'+(.15+r()*.3)+')';g.lineWidth=.6;g.beginPath();const x=r()*w,y=r()*h,a=r()*6.3,l=10+r()*40;g.moveTo(x,y);g.quadraticCurveTo(x+Math.cos(a+.5)*l*.5,y+Math.sin(a+.5)*l*.5,x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke()}},
+  foam:(g,w,h,r)=>{g.fillStyle='#e4e3e0';g.fillRect(0,0,w,h);for(let i=0;i<1600;i++){const rr=1+r()*4;g.fillStyle='rgba(255,255,255,.7)';g.strokeStyle='rgba(160,160,155,.5)';g.beginPath();g.arc(r()*w,r()*h,rr,0,7);g.fill();g.stroke()}},
+  darkGrey:solid('#5d5a56',14),
+  darkerGrey:solid('#45423f',12),
+  nearBlack:solid('#2f3134',10),
+  spc:(g,w,h,r)=>{g.fillStyle='#9a9a98';g.fillRect(0,0,w,h);for(let i=0;i<3000;i++){g.fillStyle=r()<.5?'rgba(255,255,255,.35)':'rgba(60,60,60,.3)';g.fillRect(r()*w,r()*h,1+r()*2,1+r()*2)}},
+  matBrown:solid('#7e5f45',22),
+  matTan:solid('#a27d58',22),
+  cream:solid('#e8d2ae',10),
+  ecuran:solid('#f0cf98',10),
+  textile:(g,w,h,r)=>{g.fillStyle='#e7e0d3';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=r()<.5?'rgba(150,135,110,.35)':'rgba(255,255,255,.6)';g.beginPath();g.arc(r()*w,r()*h,.6+r()*1.8,0,7);g.fill()}},
+  green:solid('#5f8c62',18),
+  hdf:(g,w,h,r)=>{g.fillStyle='#7a5235';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=r()<.5?'rgba(40,20,10,.25)':'rgba(200,150,110,.2)';g.fillRect(r()*w,r()*h,1+r()*6,1)}},
+  hdfLight:(g,w,h,r)=>{g.fillStyle='#a07a55';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=r()<.5?'rgba(60,35,15,.22)':'rgba(220,180,140,.22)';g.fillRect(r()*w,r()*h,1+r()*6,1)}},
+  lino:(g,w,h,r)=>{g.fillStyle='#9bb86e';g.fillRect(0,0,w,h);const cols=['#7fa257','#b6cf8d','#8daf62','#c9dca4','#6f9249'];for(let i=0;i<700;i++){g.fillStyle=cols[(r()*cols.length)|0];g.globalAlpha=.35+r()*.4;g.beginPath();g.ellipse(r()*w,r()*h,4+r()*26,1+r()*4,(r()-.5)*.6,0,7);g.fill()}g.globalAlpha=1},
+  cork:(g,w,h,r)=>{g.fillStyle='#c48d58';g.fillRect(0,0,w,h);for(let i=0;i<2600;i++){g.fillStyle=r()<.55?'rgba(110,65,30,.45)':'rgba(235,190,135,.5)';g.beginPath();g.arc(r()*w,r()*h,.6+r()*2.4,0,7);g.fill()}}
+};
+function getTex(key){return canvasTex(key,1024,320,TEX[key])}
+
+/* =========================================================
+   3D-SZENE
+   ========================================================= */
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,.1,200);
+camera.position.set(6,5,8);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.08;controls.maxPolarAngle=Math.PI*.495;controls.minDistance=2;controls.maxDistance=45;
+
+scene.add(new THREE.HemisphereLight(0xffffff,0xb8ab98,.75));
+const sun=new THREE.DirectionalLight(0xffffff,.85);
+sun.position.set(5,12,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-12,right:12,top:12,bottom:-12,near:1,far:40});sun.shadow.bias=-.0005;
+scene.add(sun);
+const fill=new THREE.DirectionalLight(0xfff1e0,.35);fill.position.set(-6,4,-4);scene.add(fill);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.ShadowMaterial({opacity:.18}));
+ground.rotation.x=-Math.PI/2;ground.position.y=-.001;ground.receiveShadow=true;scene.add(ground);
+// Ablagefläche zum Zusammenbauen
+const padMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.35});
+const pad=new THREE.Mesh(new THREE.PlaneGeometry(5.6,2.6),padMat);
+pad.rotation.x=-Math.PI/2;pad.position.y=.002;scene.add(pad);
+
+const L=4.2, W=1.5, LM=4.7, WM=2.0;
+const root=new THREE.Group();scene.add(root);
+let neighbor=null;
+
+/* Profilgeometrie: Querschnitt (Breite u, Höhe v) wird entlang der Länge extrudiert.
+   'nf'    = Nut und Feder / Nut und Kamm
+   'click' = Klickprofil mit Rastnase (Feder mit Haken, Nut mit verlängerter Unterlippe) */
+function profileGeometry(len,wid,t,type){
+  const tg=Math.min(.17,wid*.11), hw=wid/2;
+  const s=new THREE.Shape();
+  if(type==='click'){
+    s.moveTo(-hw-tg*.55,0);
+    s.lineTo(hw-tg*.55,0);              // Aussparung für die Unterlippe der Nachbardiele
+    s.lineTo(hw-tg*.55,t*.36);
+    s.lineTo(hw+tg*.95,t*.36);
+    s.lineTo(hw+tg*.95,t*.22);          // Rastnase nach unten
+    s.lineTo(hw+tg*1.35,t*.22);
+    s.lineTo(hw+tg*1.35,t*.56);
+    s.lineTo(hw+tg*.35,t*.64);
+    s.lineTo(hw,t*.64);
+    s.lineTo(hw,t);
+    s.lineTo(-hw,t);
+    s.lineTo(-hw,t*.68);
+    s.lineTo(-hw+tg*1.4,t*.68);         // Nut
+    s.lineTo(-hw+tg*1.4,t*.18);
+    s.lineTo(-hw+tg*.95,t*.18);
+    s.lineTo(-hw+tg*.95,t*.34);         // Rastkante
+    s.lineTo(-hw-tg*.55,t*.34);         // verlängerte Unterlippe
+    s.lineTo(-hw-tg*.55,0);
+  }else{
+    s.moveTo(-hw,0);s.lineTo(hw,0);s.lineTo(hw,t*.35);s.lineTo(hw+tg,t*.38);s.lineTo(hw+tg,t*.62);s.lineTo(hw,t*.65);s.lineTo(hw,t);
+    s.lineTo(-hw,t);s.lineTo(-hw,t*.7);s.lineTo(-hw+tg,t*.66);s.lineTo(-hw+tg,t*.34);s.lineTo(-hw,t*.3);s.lineTo(-hw,0);
+  }
+  const geo=new THREE.ExtrudeGeometry(s,{depth:len,bevelEnabled:false});
+  geo.rotateY(-Math.PI/2);geo.translate(len/2,-t/2,0);
+  const uv=geo.attributes.uv;for(let i=0;i<uv.count;i++){uv.setXY(i,uv.getX(i)/4,uv.getY(i)/1.4)}
+  return geo;
+}
+
+/* =========================================================
+   ZUSTAND
+   ========================================================= */
+let P=0, mode='build', level='mittel', meshes=[], placed=0, errors=0, tips=0, explode=.8, showLabels=true, trueScale=false;
+let selected=null, hover=null, buildOrder=[];
+let nameQueue=[], nameIdx=0, nameErrors=0, nameSolved=new Set(), answers=[];
+let camGoal=null, tStart=null, tEnd=null, drag=null, view='schraeg';
+
+const $=s=>document.querySelector(s);
+const pane=$('#pane'), labelsEl=$('#labels'), tooltip=$('#tooltip'), banner=$('#banner');
+const isPark=()=>PRODUCTS[P].group==='parkett';
+function bottomUp(){return PRODUCTS[P].layers.slice().reverse()}
+function shuffle(a,seed){const r=rng(seed||(Date.now()&0xffffff));for(let i=a.length-1;i>0;i--){const j=(r()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+const canTrue=()=>PRODUCTS[P].layers.every(l=>l.mm!=null);
+const hasProfile=()=>PRODUCTS[P].layers.some(l=>l.profile);
+function fmtMM(v){return v<1?String(v).replace('.',','):v.toLocaleString('de-DE',{maximumFractionDigits:1})}
+
+function clearRoot(){meshes.forEach(m=>{m.geometry.dispose();m.material.dispose();root.remove(m)});meshes=[];removeNeighbor()}
+function layerT(ly){return (trueScale&&ly.mm!=null)?Math.max(ly.mm*.05,.006):ly.t}
+
+function buildProduct(){
+  clearRoot();
+  let y=0;
+  bottomUp().forEach((ly,b)=>{
+    const t=layerT(ly);
+    const len=ly.separate?LM:L, wid=ly.separate?WM:W;
+    const geo=ly.profile?profileGeometry(len,wid,t,ly.profile):new THREE.BoxGeometry(len,t,wid);
+    const mat=new THREE.MeshStandardMaterial({map:getTex(ly.tex),roughness:ly.clear?.15:.72,metalness:0,
+      transparent:!!ly.clear,opacity:ly.clear?.85:1,depthWrite:!ly.clear,side:ly.clear?THREE.DoubleSide:THREE.FrontSide});
+    const m=new THREE.Mesh(geo,mat);
+    m.castShadow=!ly.clear;m.receiveShadow=true;
+    m.userData={b,ly,t,baseY:y+t/2,cur:new THREE.Vector3(),target:new THREE.Vector3(),rot:0,targetRot:0,shake:0,flash:null};
+    y+=t;root.add(m);meshes.push(m);
+  });
+}
+function stackPos(m,ex){const b=m.userData.b,n=meshes.length;return new THREE.Vector3((b-(n-1)/2)*ex*.34,m.userData.baseY+b*ex*.42,0)}
+function scatterPos(k,n){const side=k%2===0?-1:1,row=Math.floor(k/2),rows=Math.ceil(n/2);return new THREE.Vector3(side*5.9,0,(row-(rows-1)/2)*2.15)}
+function setTargets(){
+  meshes.forEach(m=>{
+    const u=m.userData;if(u.dragging)return;
+    if(mode==='build'){
+      if(u.placed){u.target.copy(stackPos(m,0));u.targetRot=0}
+      else{const p=scatterPos(buildOrder.indexOf(u.b),meshes.length);p.y=u.t/2;u.target.copy(p);u.targetRot=u.scRot}
+    }else{u.target.copy(stackPos(m,mode==='name'?Math.max(explode,.8):explode));u.targetRot=0}
+  });
+}
+function snap(){meshes.forEach(m=>{m.userData.cur.copy(m.userData.target);m.userData.rot=m.userData.targetRot})}
+
+function modelBox(){const b=new THREE.Box3();meshes.forEach(m=>{const u=m.userData;const len=u.ly.separate?LM:L,wid=u.ly.separate?WM:W;
+  b.expandByPoint(new THREE.Vector3(u.target.x-len/2,u.target.y-u.t/2,-wid/2));b.expandByPoint(new THREE.Vector3(u.target.x+len/2,u.target.y+u.t/2,wid/2))});
+  if(neighbor)b.expandByPoint(new THREE.Vector3(0,0,W*1.5));return b}
+function aimCamera(v){
+  if(v)view=v;
+  const aspect=stage.clientWidth/Math.max(stage.clientHeight,1),k=Math.max(1,1.55/aspect);
+  if(mode==='build'){view='schraeg';const d=Math.max(14,9.4/(Math.tan(19*Math.PI/180)*aspect));
+    camGoal={pos:new THREE.Vector3(0,.69*d,.72*d),tgt:new THREE.Vector3(0,0,.3)};renderViews();return}
+  const box=modelBox(),c=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+  if(view==='stirn'){const tgt=new THREE.Vector3(box.max.x,c.y,c.z);camGoal={pos:tgt.clone().add(new THREE.Vector3(2.6+size.y*1.5,.5+size.y*.4,.9).multiplyScalar(k)),tgt}}
+  else if(view==='oben'){camGoal={pos:new THREE.Vector3(c.x+.01,c.y+9*k,c.z+.4),tgt:c.clone()}}
+  else{camGoal={pos:new THREE.Vector3(c.x+5.2*k,c.y+3.4+size.y*.4,c.z+7.2*k),tgt:new THREE.Vector3(c.x*.5,c.y,c.z)}}
+  renderViews();
+}
+
+/* ---------- Zweite Diele (Verbindung zeigen) ---------- */
+function removeNeighbor(){if(!neighbor)return;neighbor.traverse(o=>{if(o.isMesh)o.material.dispose()});scene.remove(neighbor);neighbor=null}
+function showNeighbor(){
+  removeNeighbor();
+  explode=0;setTargets();const ex=$('#ex');if(ex)ex.value=0;
+  neighbor=new THREE.Group();
+  meshes.forEach(m=>{if(m.userData.ly.separate)return;const c=new THREE.Mesh(m.geometry,m.material.clone());c.material.emissive.setRGB(0,0,0);
+    c.position.copy(stackPos(m,0));c.castShadow=m.castShadow;c.receiveShadow=true;neighbor.add(c)});
+  neighbor.userData={from:W+1.6,to:W,t:0};neighbor.position.z=W+1.6;scene.add(neighbor);
+  aimCamera('stirn');
+  showBanner(`So greifen die Profile ineinander: ${PRODUCTS[P].layers.find(l=>l.profile).profile==='click'?'<b>Klickverbindung</b> – die Rastnase hakt hinter die Kante der Unterlippe.':'<b>Nut und Feder</b> – die Feder schiebt sich passgenau in die Nut.'}`);
+}
+
+/* =========================================================
+   TIMER & BESTWERTE
+   ========================================================= */
+function startTimer(){if(tStart==null){tStart=performance.now();tEnd=null}}
+function stopTimer(){if(tStart!=null&&tEnd==null)tEnd=performance.now()}
+function elapsed(){return tStart==null?0:((tEnd??performance.now())-tStart)/1000}
+function fmtTime(s){s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+setInterval(()=>{const el=document.getElementById('timer');if(el)el.textContent=fmtTime(elapsed())},500);
+function bestKey(){return `bb3d_${PRODUCTS[P].short}_${mode}_${level}`}
+function getBest(){try{return JSON.parse(localStorage.getItem(bestKey())||'null')}catch(e){return null}}
+function saveBest(err,sec){const b=getBest();const better=!b||err<b.e||(err===b.e&&sec<b.s);
+  if(better){try{localStorage.setItem(bestKey(),JSON.stringify({e:err,s:sec}))}catch(e){}}return {better,prev:b}}
+function stars(err){const n=err===0?3:err<=2?2:1;return `<span class="stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(3-n)}</span></span>`}
+
+/* =========================================================
+   UI: Produkte, Modi, Stufen
+   ========================================================= */
+const prodNav=$('#products');
+function renderNav(){
+  prodNav.innerHTML='';let lastG=null,row=null;
+  PRODUCTS.forEach((p,i)=>{
+    if(p.group!==lastG){lastG=p.group;row=document.createElement('div');row.className='prow';prodNav.appendChild(row);
+      const g=document.createElement('span');g.className='grp';g.textContent=p.group==='parkett'?'Parkett · Herstellerangaben':'Elastische Beläge';row.appendChild(g)}
+    const b=document.createElement('button');b.className=(p.group==='parkett'?'park ':'')+(i===P?'active':'');
+    b.innerHTML=`<span class="nr">${i+1}</span>${p.short}`;b.onclick=()=>selectProduct(i);row.appendChild(b);
+  });
+}
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+
+function selectProduct(i){
+  P=i;explode=.8;if(!canTrue())trueScale=false;renderNav();
+  buildProduct();renderAbout();setMode(mode);snap();
+}
+function setMode(m){
+  mode=m;selected=null;hideBanner();removeNeighbor();tStart=null;tEnd=null;
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  const n=meshes.length;
+  if(m==='build'){
+    placed=0;errors=0;tips=0;
+    buildOrder=shuffle([...Array(n).keys()]);
+    const r=rng(n*13+P+1);
+    meshes.forEach(x=>{x.userData.placed=false;x.userData.scRot=(r()-.5)*.35});
+    renderBuild();
+  }else if(m==='explore'){renderExplore()}
+  else{
+    nameQueue=shuffle([...Array(n).keys()]);nameIdx=0;nameErrors=0;nameSolved=new Set();
+    const layers=bottomUp();
+    answers=layers.map((ly,b)=>({b,name:ly.name}));
+    if(level==='schwer'){
+      const own=new Set(layers.map(l=>l.name));
+      const pool=[...new Set(PRODUCTS.filter((p,i)=>i!==P&&p.group===PRODUCTS[P].group).flatMap(p=>p.layers.map(l=>l.name)))].filter(x=>!own.has(x));
+      shuffle(pool).slice(0,3).forEach(name=>answers.push({b:-1,name}));
+    }
+    shuffle(answers);
+    renderName();
+  }
+  setTargets();aimCamera(m==='build'?'schraeg':'schraeg');
+  $('#stageHint').textContent=m==='build'?'Teile ziehen und auf der hellen Fläche ablegen – oder antippen · Ziehen auf leerer Fläche = drehen':'Ziehen = drehen · Mausrad/2 Finger = zoomen · Rechtsklick/3 Finger = verschieben';
+}
+const LEVELS={build:{leicht:'Namenskarten, Namen beim Darüberfahren im Modell, ausführliche Hinweise, Tipps.',mittel:'Namenskarten, Hinweise und Tipps – im Modell keine Namen.',schwer:'Keine Namenskarten, keine Tipps: Erkenne die Schichten nur am Aussehen und ziehe sie im Modell auf die Fläche.'},
+  name:{leicht:'Antworten mit Farbmuster.',mittel:'Nur die Namen der Schichten dieses Belags.',schwer:'Zusätzlich falsche Antworten aus anderen Belägen.'}};
+function levelHTML(){
+  return `<div class="levels">Stufe: <span class="seg">${['leicht','mittel','schwer'].map(l=>`<button data-l="${l}" class="${l===level?'on':''}">${l[0].toUpperCase()+l.slice(1)}</button>`).join('')}</span></div>
+  <div class="lvlinfo">${LEVELS[mode][level]}</div>`;
+}
+function bindLevels(){pane.querySelectorAll('.levels button').forEach(b=>b.onclick=()=>{level=b.dataset.l;setMode(mode)})}
+function swatch(ly){return `<span class="sw" style="background-image:url(${swatchCache[ly.tex]||''});background-color:#ddd"></span>`}
+function headHTML(){const p=PRODUCTS[P];return `${p.maker?`<div class="maker">${p.maker}</div>`:''}<h2>${p.title}</h2>`}
+
+/* ---------- Bauen ---------- */
+function renderBuild(){
+  const layers=bottomUp(),n=layers.length,done=placed===n;
+  let doneBox='';
+  if(done){const sec=elapsed(),res=saveBest(errors,sec);
+    doneBox=`<div class="done-box">${stars(errors)}<br><b>Geschafft!</b> Zeit ${fmtTime(sec)}, ${errors} Fehlversuch${errors===1?'':'e'}${tips?`, ${tips} Tipp${tips===1?'':'s'}`:''}.
+      ${res.better&&res.prev?' <b>Neue Bestleistung!</b>':''}${!res.better&&res.prev?` <span class="muted">Bestleistung: ${res.prev.e} Fehler, ${fmtTime(res.prev.s)}</span>`:''}
+      <div class="merke" style="background:#fff">${PRODUCTS[P].merke}</div>
+      <div class="row"><button class="btn primary" id="goExplore">Aufbau erkunden</button><button class="btn" id="goName">Schichten benennen</button></div></div>`}
+  pane.innerHTML=`${headHTML()}${levelHTML()}
+    <div class="task">Baue den Belag <b>von unten nach oben</b> auf. Ziehe die Teile im 3D-Modell auf die helle Fläche${level==='schwer'?'':' oder klicke sie in der Liste an'}.</div>
+    <div class="stats"><span>Eingebaut: <b>${placed}/${n}</b></span><span>Fehler: <b>${errors}</b></span>${level!=='schwer'?`<span>Tipps: <b>${tips}</b></span>`:''}<span>Zeit: <b id="timer">${fmtTime(elapsed())}</b></span></div>
+    ${level==='schwer'?'':`<h3>Bauteile</h3><div class="cards" id="buildCards">${buildOrder.map(b=>{const ly=layers[b],pl=meshes[b].userData.placed;
+      return `<button class="card ${pl?'done':''}" data-b="${b}" ${pl?'disabled':'draggable="true"'}>${swatch(ly)}<span>${ly.name}</span>${pl?'<span class="tag">✓ eingebaut</span>':(ly.separate?'<span class="tag">separat</span>':'')}</button>`}).join('')}</div>`}
+    <h3>Dein Aufbau (unten → oben)</h3>
+    <div class="stack">${layers.map((ly,b)=>`<div class="slot ${b<placed?'filled':''}">${b<placed?swatch(ly)+ly.name:(b===placed?'⬚ nächste Schicht …':'')}</div>`).join('')}</div>
+    ${doneBox}
+    <div class="row">${!done&&level!=='schwer'?'<button class="btn" id="tipBtn">💡 Tipp</button>':''}<button class="btn" id="resetBtn">↺ Neu starten</button></div>`;
+  bindLevels();
+  pane.querySelectorAll('#buildCards .card:not(.done)').forEach(c=>{
+    const b=+c.dataset.b;
+    c.onclick=()=>{startTimer();tryPlace(b)};
+    c.onmouseenter=()=>{hover=meshes[b]};c.onmouseleave=()=>{hover=null};
+    c.ondragstart=e=>{e.dataTransfer.setData('text/plain',String(b));e.dataTransfer.effectAllowed='move';hover=meshes[b]};
+    c.ondragend=()=>{hover=null;stage.classList.remove('dragover')};
+  });
+  const tb=$('#tipBtn');if(tb)tb.onclick=()=>{startTimer();tips++;const m=meshes[placed];m.userData.flash={col:[.9,.7,.1],t:1.8};
+    showBanner(`Tipp: Gesucht ist die Schicht, die <b>${placed===0?'ganz unten':'direkt auf „'+layers[placed-1].name+'“'}</b> liegt. Sie blinkt gelb.`);renderBuild()};
+  $('#resetBtn').onclick=()=>setMode('build');
+  const ge=$('#goExplore');if(ge)ge.onclick=()=>setMode('explore');
+  const gn=$('#goName');if(gn)gn.onclick=()=>setMode('name');
+}
+function tryPlace(b){
+  const m=meshes[b],layers=bottomUp();
+  if(m.userData.placed||mode!=='build')return;
+  startTimer();
+  if(b===placed){
+    m.userData.placed=true;placed++;m.userData.flash={col:[.1,.6,.25],t:.8};
+    if(placed===layers.length){stopTimer();showBanner(`<b>Richtig – fertig!</b> Alle ${layers.length} Schichten sitzen.`,'ok')}
+    else showBanner(`<b>Richtig:</b> ${m.userData.ly.name}. <span class="muted">${level==='schwer'?'':m.userData.ly.func}</span>`,'ok');
+  }else{
+    errors++;m.userData.shake=.5;m.userData.flash={col:[.8,.1,.05],t:.7};
+    const diff=b-placed;
+    let msg;
+    if(level==='schwer')msg='<b>Falsch.</b> Diese Schicht kommt noch nicht dran.';
+    else if(level==='leicht')msg=`<b>Noch nicht.</b> „${m.userData.ly.name}“ liegt <b>${diff===1?'eine Schicht':diff+' Schichten'}</b> weiter oben. ${placed===0?'Welche Schicht liegt ganz unten?':`Was liegt direkt auf „${layers[placed-1].name}“?`}`;
+    else msg=`<b>Noch nicht.</b> „${m.userData.ly.name}“ liegt weiter oben. ${placed===0?'Welche Schicht liegt ganz unten?':`Was liegt direkt auf „${layers[placed-1].name}“?`}`;
+    showBanner(msg,'err');
+  }
+  setTargets();renderBuild();
+  if(!m.userData.placed){const c=pane.querySelector(`.card[data-b="${b}"]`);if(c)c.classList.add('wrong')}
+}
+stage.addEventListener('dragover',e=>{if(mode==='build'){e.preventDefault();stage.classList.add('dragover')}});
+stage.addEventListener('dragleave',()=>stage.classList.remove('dragover'));
+stage.addEventListener('drop',e=>{e.preventDefault();stage.classList.remove('dragover');const b=parseInt(e.dataTransfer.getData('text/plain'));if(!isNaN(b))tryPlace(b)});
+
+/* ---------- Erkunden ---------- */
+function renderExplore(){
+  const p=PRODUCTS[P];
+  pane.innerHTML=`${headHTML()}
+    <p class="muted" style="margin:4px 0 0">Klicke eine Schicht an, um mehr zu erfahren. Nummer 1 ist die oberste Schicht.</p>
+    <label class="ctl">Explosionsansicht <input type="range" id="ex" min="0" max="1.6" step="0.01" value="${explode}"></label>
+    <label class="ctl"><input type="checkbox" id="lb" ${showLabels?'checked':''}> Nummern anzeigen</label>
+    ${canTrue()?`<label class="ctl"><input type="checkbox" id="ts" ${trueScale?'checked':''}> Echte Proportionen (Dicken in mm)</label>`:''}
+    ${hasProfile()?`<div class="row" style="margin-top:4px"><button class="btn" id="nb">🔗 Zwei Dielen verbinden</button></div>`:''}
+    <div class="cards" id="exCards" style="margin-top:12px">${p.layers.map((ly,i)=>`<button class="card" data-b="${p.layers.length-1-i}"><span class="n">${ly.n}</span>${swatch(ly)}<span>${ly.name}</span>${ly.mm!=null?`<span class="tag">${ly.mmEst?'≈ ':''}${fmtMM(ly.mm)} mm</span>`:(ly.separate?'<span class="tag">separat</span>':'')}</button>`).join('')}</div>
+    <div id="infoBox"></div>`;
+  $('#ex').oninput=e=>{explode=+e.target.value;removeNeighbor();setTargets()};
+  $('#ex').onchange=()=>aimCamera();
+  $('#lb').onchange=e=>{showLabels=e.target.checked};
+  const ts=$('#ts');if(ts)ts.onchange=e=>{trueScale=e.target.checked;const s=selected?selected.userData.b:null;buildProduct();setTargets();if(s!=null)selected=meshes[s];
+    showBanner(trueScale?'Jetzt maßstäblich: Die Oberflächenbehandlung ist nur Bruchteile eines Millimeters dick – die Nutzschicht dagegen mehrere Millimeter.':'Schichtdicken wieder zur Verdeutlichung vergrößert.')};
+  const nb=$('#nb');if(nb)nb.onclick=showNeighbor;
+  pane.querySelectorAll('#exCards .card').forEach(c=>{const b=+c.dataset.b;c.onclick=()=>selectLayer(b);c.onmouseenter=()=>{hover=meshes[b]};c.onmouseleave=()=>{hover=null}});
+  if(selected)selectLayer(selected.userData.b);
+}
+function selectLayer(b){
+  selected=meshes[b];const ly=selected.userData.ly;
+  pane.querySelectorAll('#exCards .card').forEach(c=>c.classList.toggle('sel',+c.dataset.b===b));
+  const box=$('#infoBox');if(!box)return;
+  box.innerHTML=`<div class="info"><h4><span class="badge">${ly.n}</span>${ly.name}</h4>
+    ${ly.mm!=null?`<p class="muted" style="margin:0">Dicke: ca. ${fmtMM(ly.mm)} mm ${ly.mmEst?'(Richtwert, nicht im Datenblatt angegeben)':'(Herstellerangabe)'}</p>`:''}
+    <span class="lab">Was ist das?</span><p>${ly.desc}</p>
+    <span class="lab">Aufgabe der Schicht</span><p>${ly.func}</p>
+    ${ly.separate?'<p class="muted">Diese Schicht gehört nicht fest zum Belag, sondern wird separat gekauft und vorher ausgelegt.</p>':''}
+    ${ly.profile?`<p class="muted">Profil: ${ly.profile==='click'?'Klickverbindung mit Rastnase':'Nut und Feder / Nut und Kamm'} – „Stirnseite“ oben rechts zeigt den Querschnitt.</p>`:''}</div>`;
+  box.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+/* ---------- Benennen ---------- */
+function renderName(){
+  const layers=bottomUp(),n=layers.length,done=nameIdx>=n;
+  let doneBox='';
+  if(done){const sec=elapsed(),res=saveBest(nameErrors,sec);
+    doneBox=`<div class="done-box">${stars(nameErrors)}<br><b>Alle Schichten benannt!</b> Zeit ${fmtTime(sec)}, ${nameErrors} Fehlversuch${nameErrors===1?'':'e'}.
+      ${res.better&&res.prev?' <b>Neue Bestleistung!</b>':''}${!res.better&&res.prev?` <span class="muted">Bestleistung: ${res.prev.e} Fehler, ${fmtTime(res.prev.s)}</span>`:''}
+      <div class="merke" style="background:#fff">${PRODUCTS[P].merke}</div>
+      <div class="row"><button class="btn primary" id="again">Nochmal</button><button class="btn" id="next">Nächster Belag →</button></div></div>`}
+  pane.innerHTML=`${headHTML()}${levelHTML()}
+    <div class="task">Welche Schicht ist <b>markiert</b> (orangefarbenes Fragezeichen)? Wähle den richtigen Namen.</div>
+    <div class="stats" id="nstats"><span>Richtig: <b>${nameSolved.size}/${n}</b></span><span>Fehler: <b>${nameErrors}</b></span><span>Zeit: <b id="timer">${fmtTime(elapsed())}</b></span></div>
+    ${done?doneBox:`<h3>Antworten</h3><div class="answers">${answers.map((a,i)=>{const ok=a.b>=0&&nameSolved.has(a.b);const ly=a.b>=0?layers[a.b]:null;
+      return `<button class="card ${ok?'done':''}" data-i="${i}" ${ok?'disabled':''}>${ok?`<span class="n">${ly.n}</span>`:''}${level==='leicht'&&ly?swatch(ly):''}<span>${a.name}</span></button>`}).join('')}</div>`}`;
+  bindLevels();
+  pane.querySelectorAll('.answers .card').forEach(c=>c.onclick=()=>answer(answers[+c.dataset.i],c));
+  const a=$('#again');if(a)a.onclick=()=>setMode('name');
+  const nx=$('#next');if(nx)nx.onclick=()=>{selectProduct((P+1)%PRODUCTS.length)};
+}
+function answer(a,el){
+  startTimer();
+  const cur=nameQueue[nameIdx],m=meshes[cur];
+  if(a.b===cur){nameSolved.add(cur);nameIdx++;m.userData.flash={col:[.1,.6,.25],t:.8};
+    if(nameIdx>=meshes.length)stopTimer();
+    showBanner(`<b>Richtig:</b> ${m.userData.ly.name}`,'ok');renderName();}
+  else{nameErrors++;m.userData.shake=.4;el.classList.remove('wrong');void el.offsetWidth;el.classList.add('wrong');
+    showBanner(a.b<0?'<b>Falsch.</b> Diese Schicht gibt es in diesem Belag gar nicht.':'<b>Leider falsch.</b> Achte auf Lage, Farbe und Dicke der markierten Schicht.','err');
+    $('#nstats').innerHTML=`<span>Richtig: <b>${nameSolved.size}/${meshes.length}</b></span><span>Fehler: <b>${nameErrors}</b></span><span>Zeit: <b id="timer">${fmtTime(elapsed())}</b></span>`;}
+}
+
+/* ---------- Ansichts-Buttons ---------- */
+function renderViews(){
+  const v=$('#views');
+  if(mode==='build'){v.innerHTML='';return}
+  v.innerHTML=[['schraeg','Schräg'],['stirn','Stirnseite'],['oben','Draufsicht']].map(([k,t])=>`<button data-v="${k}" class="${view===k?'on':''}">${t}</button>`).join('');
+  v.querySelectorAll('button').forEach(b=>b.onclick=()=>aimCamera(b.dataset.v));
+}
+
+/* ---------- Infobereich ---------- */
+function renderAbout(){
+  const p=PRODUCTS[P];
+  $('#aboutBody').innerHTML=`<p>${p.intro}</p><dl class="facts">${p.facts.map(f=>`<dt>${f[0]}</dt><dd>${f[1]}</dd>`).join('')}</dl>
+  <p><b>Schichten von oben nach unten:</b><br>${p.layers.map(l=>`${l.n} = ${l.name}`).join('<br>')}</p>
+  ${p.sources?`<p><b>Quellen:</b><br>${p.sources.map(s=>`<a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a>`).join('<br>')}</p>`:''}
+  <p class="credit">${p.credit}. ${p.group==='parkett'?'Mit ≈ markierte Dicken sind Richtwerte (Gesamtstärke minus angegebene Schichten bzw. übliche Werte), keine Herstellerangaben. Angaben ohne Gewähr, Stand der Datenblätter.':'Schichtdicken im Modell zur Verdeutlichung stark vergrößert, nicht maßstäblich.'}</p>`;
+}
+
+let bannerTimer=null;
+function showBanner(html,cls=''){banner.innerHTML=html;banner.className=cls;banner.style.display='block';clearTimeout(bannerTimer);bannerTimer=setTimeout(hideBanner,5500)}
+function hideBanner(){banner.style.display='none'}
+
+/* =========================================================
+   INTERAKTION IM 3D: Klicken, Ziehen & Ablegen
+   ========================================================= */
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+const dragPlane=new THREE.Plane(new THREE.Vector3(0,1,0),-.9), hitPt=new THREE.Vector3();
+function setRay(ev){const r=renderer.domElement.getBoundingClientRect();mouse.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(mouse,camera)}
+function pick(ev){setRay(ev);const c=mode==='build'?meshes.filter(m=>!m.userData.placed):meshes;const h=ray.intersectObjects(c,false)[0];return h?h.object:null}
+const inZone=p=>Math.abs(p.x)<3.1&&Math.abs(p.z)<1.7;
+
+// Capture-Phase: läuft vor OrbitControls, damit ein gegriffenes Teil die Kamera nicht dreht
+stage.addEventListener('pointerdown',e=>{
+  if(e.target!==renderer.domElement||mode!=='build'||e.button>0)return;
+  const m=pick(e);if(!m)return;
+  controls.enabled=false;
+  drag={m,x:e.clientX,y:e.clientY,moved:false};m.userData.dragging=true;startTimer();
+},true);
+window.addEventListener('pointermove',e=>{
+  if(drag){
+    if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>5)drag.moved=true;
+    if(drag.moved){setRay(e);if(ray.ray.intersectPlane(dragPlane,hitPt)){const u=drag.m.userData;u.target.set(hitPt.x,.9,hitPt.z);u.targetRot=0;padMat.opacity=inZone(hitPt)?.75:.35}}
+    return;
+  }
+  if(e.target!==renderer.domElement||e.pointerType!=='mouse'){return}
+  const m=pick(e);hover=m;
+  renderer.domElement.style.cursor=m?(mode==='build'?'grab':'pointer'):'';
+  const showName=m&&(mode==='explore'||(mode==='build'&&level==='leicht'));
+  if(showName){const r=stage.getBoundingClientRect();tooltip.style.display='block';tooltip.textContent=(mode==='explore'?m.userData.ly.n+' – ':'')+m.userData.ly.name;tooltip.style.left=(e.clientX-r.left+14)+'px';tooltip.style.top=(e.clientY-r.top+10)+'px'}
+  else tooltip.style.display='none';
+});
+window.addEventListener('pointerup',e=>{
+  if(!drag)return;
+  const {m,moved}=drag;drag=null;controls.enabled=true;m.userData.dragging=false;padMat.opacity=.35;
+  if(!moved){tryPlace(m.userData.b);return}
+  setRay(e);const ok=ray.ray.intersectPlane(dragPlane,hitPt)&&inZone(hitPt);
+  if(ok)tryPlace(m.userData.b);else setTargets();
+});
+let downXY=null;
+renderer.domElement.addEventListener('pointerdown',e=>{downXY=[e.clientX,e.clientY]});
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!downXY||mode!=='explore')return;const d=Math.hypot(e.clientX-downXY[0],e.clientY-downXY[1]);downXY=null;if(d>6)return;
+  const m=pick(e);if(m)selectLayer(m.userData.b);
+});
+renderer.domElement.addEventListener('pointerleave',()=>{hover=null;tooltip.style.display='none'});
+controls.addEventListener('start',()=>{camGoal=null});
+
+/* =========================================================
+   LABELS & RENDER-SCHLEIFE
+   ========================================================= */
+const v3=new THREE.Vector3();
+function proj(x,y,z){v3.set(x,y,z).project(camera);return v3.z>1?null:[(v3.x*.5+.5)*stage.clientWidth,(-v3.y*.5+.5)*stage.clientHeight]}
+function updateLabels(){
+  let html='';
+  if(mode==='build'&&placed===0){const p=proj(0,.01,1.55);if(p)html+=`<div class="lbl zone" style="left:${p[0]}px;top:${p[1]}px">hier aufbauen</div>`}
+  meshes.forEach(m=>{
+    const u=m.userData,ly=u.ly;let content=null,cls='';
+    if(mode==='explore'&&showLabels)content=`<span class="dot">${ly.n}</span>`;
+    if(mode==='name'){
+      if(nameIdx<meshes.length&&nameQueue[nameIdx]===u.b){content='<span class="dot">?</span>';cls='q'}
+      else if(nameSolved.has(u.b))content=`<span class="dot">${ly.n}</span><span class="txt">${ly.name}</span>`;
+    }
+    if(!content)return;
+    const len=ly.separate?LM:L;
+    const p=proj(m.position.x+len/2+.15,m.position.y,m.position.z+(ly.separate?WM:W)/2);if(!p)return;
+    html+=`<div class="lbl ${cls}" style="left:${p[0]}px;top:${p[1]}px">${content}</div>`;
+  });
+  labelsEl.innerHTML=html;
+}
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+window.addEventListener('resize',()=>{resize();aimCamera()});
+
+const clock=new THREE.Clock();let time=0;
+function loop(){
+  const dt=Math.min(clock.getDelta(),.05);time+=dt;
+  const k=1-Math.exp(-dt*7),kd=1-Math.exp(-dt*22);
+  meshes.forEach(m=>{
+    const u=m.userData;
+    u.cur.lerp(u.target,u.dragging?kd:k);u.rot+=(u.targetRot-u.rot)*k;
+    let ox=0;if(u.shake>0){u.shake-=dt;ox=Math.sin(time*55)*.09*Math.max(u.shake,0)/.5}
+    m.position.set(u.cur.x+ox,u.cur.y,u.cur.z);m.rotation.y=u.rot;
+    let r=0,g=0,b=0;
+    if(hover===m||(drag&&drag.m===m)){r=g=b=.12}
+    if(selected===m&&mode==='explore'){r=.05;g=.15;b=.35}
+    if(mode==='name'&&nameIdx<meshes.length&&nameQueue[nameIdx]===u.b){const p=(Math.sin(time*5)+1)/2;r=.45*p;g=.22*p}
+    if(u.flash){u.flash.t-=dt;if(u.flash.t<=0)u.flash=null;else{const p=Math.min(1,u.flash.t)*(.6+.4*Math.sin(time*14));r=u.flash.col[0]*p;g=u.flash.col[1]*p;b=u.flash.col[2]*p}}
+    m.material.emissive.setRGB(r,g,b);
+  });
+  if(neighbor){const nd=neighbor.userData;nd.t+=dt;if(nd.t>.6)neighbor.position.z+=(nd.to-neighbor.position.z)*k*.6}
+  pad.visible=mode==='build';
+  if(camGoal){camera.position.lerp(camGoal.pos,k*.8);controls.target.lerp(camGoal.tgt,k*.8);if(camera.position.distanceTo(camGoal.pos)<.02)camGoal=null}
+  controls.update();
+  renderer.render(scene,camera);
+  updateLabels();
+  requestAnimationFrame(loop);
+}
+
+/* Start */
+resize();
+Object.keys(TEX).forEach(getTex);
+renderNav();
+selectProduct(0);
+camera.position.copy(camGoal.pos);controls.target.copy(camGoal.tgt);
+loop();
+</script>
+</body>
+</html>
