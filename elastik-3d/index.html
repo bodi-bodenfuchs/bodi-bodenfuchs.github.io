@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elastische Bodenbeläge – 3D-Baukasten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f1ec; --panel:#fffdf9; --ink:#2b2620; --muted:#6f665b; --line:#e3ddd3;
+    --accent:#b5652b; --accent-soft:#f6e7da; --ok:#2f7d4f; --ok-soft:#e1f1e6; --err:#b83a2e; --err-soft:#f8e1de;
+    --blue:#2d5d8f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,sans-serif;font-size:16px}
+  body{display:flex;flex-direction:column}
+  header{padding:12px 20px 6px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+  header h1{font-size:1.35rem;margin:0;font-weight:700;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);font-size:.95rem}
+  .products{display:flex;flex-direction:column;gap:4px;padding:2px 20px 10px}
+  .prow{display:flex;gap:8px;overflow-x:auto;align-items:center}
+  .products .grp{flex:0 0 140px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;line-height:1.2}
+  .products button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:4px 9px;border-radius:9px;font:inherit;font-size:.86rem;cursor:pointer;display:flex;gap:8px;align-items:center}
+  .products button .nr{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:.78rem}
+  .products button.g-forbo .nr{background:#e3ecf5;color:#2d5d8f}
+  .products button.g-inku .nr{background:#e5ecdf;color:#4f6b3a}
+  .products button.g-skript .nr{background:#f3e3f0;color:#8a3d7a}
+  .products button.g-verlegung .nr{background:#efe9d6;color:#7a5d12}
+  .products button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .products button.active .nr{background:#fff;color:var(--ink)}
+  main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:14px;padding:0 20px 20px}
+  #stage{position:relative;border-radius:14px;overflow:hidden;background:linear-gradient(#ebe6de,#d7cfc2);border:1px solid var(--line);min-height:420px}
+  #stage canvas{display:block;width:100%;height:100%;touch-action:none}
+  #stage.dragover{outline:3px dashed var(--accent);outline-offset:-6px}
+  #labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .lbl{position:absolute;transform:translate(0,-50%);display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:.85rem;font-weight:600}
+  .lbl .dot{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--ink);color:#fff;font-size:.8rem;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .lbl .txt{background:rgba(255,253,249,.92);padding:2px 8px;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .lbl.q .dot{background:var(--accent);animation:pulse 1s infinite}
+  .lbl.zone{transform:translate(-50%,-50%);font-size:.8rem;color:var(--muted);font-weight:600;background:rgba(255,253,249,.7);padding:2px 8px;border-radius:6px}
+  @keyframes pulse{50%{transform:scale(1.15)}}
+  #tooltip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;padding:4px 9px;border-radius:6px;font-size:.85rem;display:none;white-space:nowrap;z-index:3}
+  #stageHint{position:absolute;left:12px;bottom:10px;font-size:.8rem;color:var(--muted);background:rgba(255,253,249,.85);padding:3px 8px;border-radius:6px}
+  #views{position:absolute;right:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+  #views button{border:1px solid var(--line);background:rgba(255,253,249,.92);border-radius:8px;padding:5px 9px;font:inherit;font-size:.82rem;cursor:pointer;color:var(--ink)}
+  #views button:hover{border-color:var(--ink)}
+  #views button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  #banner{position:absolute;left:50%;top:52px;transform:translateX(-50%);max-width:88%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:.95rem;display:none;text-align:center;z-index:2}
+  #banner.ok{border-color:#9fd0b0;background:var(--ok-soft)}
+  #banner.err{border-color:#e6aaa3;background:var(--err-soft)}
+  aside{background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .modes{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line)}
+  .modes button{border:0;background:none;padding:11px 4px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
+  .modes button.active{color:var(--ink);border-bottom-color:var(--accent)}
+  .modes button small{display:block;font-weight:400;font-size:.72rem;white-space:nowrap}
+  .pane{padding:14px 16px;overflow-y:auto;flex:1}
+  .pane h2{font-size:1.1rem;margin:0 0 4px}
+  .pane h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 8px}
+  .maker{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:#4f6b3a;font-weight:700}
+  .muted{color:var(--muted)}
+  .levels{display:flex;align-items:center;gap:6px;margin:10px 0 4px;font-size:.9rem}
+  .levels .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .levels .seg button{border:0;background:#fff;padding:6px 11px;font:inherit;font-size:.88rem;cursor:pointer;color:var(--ink)}
+  .levels .seg button+button{border-left:1px solid var(--line)}
+  .levels .seg button.on{background:var(--accent);color:#fff}
+  .lvlinfo{font-size:.82rem;color:var(--muted);margin:2px 0 6px}
+  .task{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.95rem;margin:8px 0 4px}
+  .cards{display:flex;flex-direction:column;gap:7px}
+  .card{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 11px;font:inherit;font-size:.95rem;cursor:pointer;color:var(--ink)}
+  .card[draggable=true]{cursor:grab}
+  .card:hover{border-color:var(--accent)}
+  .card .sw{flex:0 0 auto;width:30px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.15);background-size:cover}
+  .card.done{background:var(--ok-soft);border-color:#b9dcc5;cursor:default}
+  .card.wrong{animation:shake .35s;border-color:var(--err);background:var(--err-soft)}
+  .card.sel{border-color:var(--blue);box-shadow:0 0 0 2px rgba(45,93,143,.2)}
+  .card .n{flex:0 0 auto;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:.8rem;font-weight:700}
+  .card .tag{margin-left:auto;font-size:.72rem;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;white-space:nowrap}
+  @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .stack{display:flex;flex-direction:column-reverse;gap:4px}
+  .slot{border:1px dashed #cfc6b8;border-radius:8px;padding:6px 10px;font-size:.88rem;color:var(--muted);min-height:32px;display:flex;align-items:center;gap:8px}
+  .slot .sw{width:26px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.15);background-size:cover;flex:0 0 auto}
+  .slot.filled{border-style:solid;border-color:#b9dcc5;background:var(--ok-soft);color:var(--ink)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 12px;font:inherit;font-size:.92rem;cursor:pointer;color:var(--ink)}
+  .btn:hover{border-color:var(--ink)}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .stats{display:flex;gap:14px;font-size:.9rem;margin-top:6px;flex-wrap:wrap}
+  .stats b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+  .info{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;margin-top:12px}
+  .info h4{margin:0 0 6px;font-size:1.05rem;display:flex;gap:8px;align-items:center}
+  .info p{margin:6px 0;font-size:.95rem;line-height:1.4}
+  .info .lab{font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);display:block;margin-top:8px}
+  .info .badge{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-size:.85rem;flex:0 0 auto}
+  label.ctl{display:flex;align-items:center;gap:10px;font-size:.92rem;margin:8px 0}
+  input[type=range]{flex:1;accent-color:var(--accent)}
+  .facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.92rem;margin:8px 0}
+  .facts dt{color:var(--muted)}
+  .facts dd{margin:0}
+  details{border-top:1px solid var(--line);padding:10px 16px;max-height:45%;overflow-y:auto}
+  details summary{cursor:pointer;font-weight:600}
+  details p{font-size:.93rem;line-height:1.45;margin:8px 0}
+  details a{color:var(--blue)}
+  .merke{border-left:4px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 8px 8px 0;font-size:.93rem;margin:10px 0}
+  .credit{font-size:.78rem;color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips .card{width:auto;padding:6px 9px;font-size:.86rem;gap:6px}
+  .chips .card .sw{width:14px;height:14px;border-radius:50%}
+  .answers{display:grid;grid-template-columns:1fr;gap:7px}
+  .done-box{background:var(--ok-soft);border:1px solid #b9dcc5;border-radius:12px;padding:12px 14px;margin-top:12px}
+  .stars{font-size:1.4rem;letter-spacing:2px;color:#d79a1e}
+  .stars .off{color:#d9d2c6}
+  .guide{position:fixed;inset:0;background:rgba(30,26,20,.45);z-index:20;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 12px}
+  .guide[hidden]{display:none}
+  .guide-box{background:var(--panel);border-radius:16px;max-width:880px;width:100%;padding:22px 26px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .guide-box h2{margin:0 0 4px;font-size:1.4rem}
+  .guide-box h3{margin:20px 0 8px;font-size:1rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)}
+  .guide-box p,.guide-box li{line-height:1.45}
+  .guide-box table{width:100%;border-collapse:collapse;font-size:.93rem}
+  .guide-box td,.guide-box th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+  .guide-box th{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .guide-box .kap{white-space:nowrap;color:var(--muted);font-size:.85rem}
+  .guide-box .go{display:inline-block;margin:2px 4px 2px 0;padding:3px 9px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font:inherit;font-size:.85rem}
+  .guide-box .go:hover{border-color:var(--ink)}
+  .guide-box tr.done td{background:var(--ok-soft)}
+  @media (max-width:900px){
+    body{display:block}
+    main{grid-template-columns:1fr}
+    #stage{height:58vh;min-height:340px}
+    details{max-height:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Elastische Bodenbeläge</h1>
+  <p>3D-Baukasten zum Skriptum: Schichtaufbau, Herstellung und Verlegung</p>
+  <button class="btn" id="guideBtn" style="margin-left:auto">📘 Anleitung &amp; Aufträge</button>
+</header>
+<div id="guide" class="guide" hidden><div class="guide-box" role="dialog" aria-label="Anleitung"><button class="btn" id="guideClose" style="float:right">✕ Schließen</button><div id="guideBody"></div></div></div>
+<nav class="products" id="products"></nav>
+<main>
+  <div id="stage">
+    <div id="labels"></div>
+    <div id="tooltip"></div>
+    <div id="views"></div>
+    <div id="banner"></div>
+    <div id="stageHint"></div>
+  </div>
+  <aside>
+    <div class="modes" id="modes">
+      <button data-mode="build">Bauen<small>stapeln</small></button>
+      <button data-mode="explore">Erkunden<small>ansehen</small></button>
+      <button data-mode="name">Benennen<small>prüfen</small></button>
+      <button data-mode="prod">Herstellung<small>Produktion</small></button>
+      <button data-mode="tiles">Fliesen<small>aufteilen</small></button>
+    </div>
+    <div class="pane" id="pane"></div>
+    <details id="about">
+      <summary>Über diesen Belag</summary>
+      <div id="aboutBody"></div>
+    </details>
+  </aside>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+if(!window.THREE||!THREE.OrbitControls){document.getElementById('stage').innerHTML='<p style="padding:20px">Die 3D-Bibliothek konnte nicht geladen werden. Bitte Seite neu laden oder Internetverbindung prüfen.</p>';throw new Error('three.js fehlt')}
+/* =========================================================
+   DATEN: Produkte und Schichten (Nummer 1 = oberste Schicht,
+   wie in den Abbildungen). Elastische Beläge nach Lehrbuch-
+   abbildungen, Parkett nach Herstellerdatenblättern.
+   ========================================================= */
+const PRODUCTS = [
+{
+  id:"cv",group:"elastisch",proc:"streich",short:"Geschäumter PVC-Belag",
+  title:"Geschäumter PVC-Belag mit Holzmusterung",
+  credit:"Aufbau nach Abb. © Forbo Flooring GmbH",
+  intro:"Ein elastischer Bodenbelag als Bahnenware (Rollenware). Die geschäumte Rückseite macht ihn weich, fußwarm und angenehm zu begehen. Gezeigt ist ein Ausschnitt aus der Bahn.",
+  facts:[["Lieferform","Bahnen von der Rolle"],["Verlegung","je nach Produkt lose, fixiert oder vollflächig verklebt"],["Typisch für","Wohnräume, Küche, Flur"]],
+  merke:"Der Glasvlieskern ist das „Skelett“ des Belags: Er hält die Bahn maßstabil, damit sie nicht schrumpft oder sich dehnt.",
+  layers:[
+    {n:1,name:"PUR-Vergütung",tex:"clearBlue",t:.035,clear:true,
+     desc:"Hauchdünne, transparente Beschichtung aus Polyurethan (PUR) auf der Oberfläche.",
+     func:"Macht den Belag pflegeleicht: Schmutz haftet schlechter, die Reinigung ist einfacher und eine Erstpflege ist meist nicht nötig."},
+    {n:2,name:"Transparente PVC-Nutzschicht",tex:"clear",t:.08,clear:true,
+     desc:"Durchsichtige, strapazierfähige Schicht aus PVC über dem Dekor.",
+     func:"Schützt das Druckbild vor Abrieb. Je dicker die Nutzschicht, desto stärker darf der Belag beansprucht werden (Nutzungsklasse)."},
+    {n:3,name:"Mehrfarbiger Druckbildträger",tex:"woodMid",t:.05,
+     desc:"Bedruckte Schicht, die das sichtbare Dekor trägt – hier eine Holzoptik.",
+     func:"Bestimmt das Aussehen des Belags (Farbe, Muster, Holz- oder Steinoptik)."},
+    {n:4,name:"Glasvlieskern",tex:"fleece",t:.05,
+     desc:"Dünne Einlage aus Glasfaservlies in der Mitte des Belags.",
+     func:"Armierung: sorgt für Maßstabilität, damit die Bahn flach liegt und sich bei Temperaturwechsel kaum verändert."},
+    {n:5,name:"Rückenausstattung aus PVC-Schaum",tex:"foam",t:.22,
+     desc:"Geschäumte, weiche Unterseite aus PVC.",
+     func:"Bringt Gehkomfort und Elastizität, wirkt fußwarm und mindert den Trittschall."}
+  ]
+},
+{
+  id:"design",group:"elastisch",short:"PVC-Designbelag",
+  title:"PVC-Designbelag (mit Verriegelungssystem)",
+  credit:"Aufbau nach Abb. wineo/Windmöller GmbH",
+  intro:"Designbeläge sind Planken oder Fliesen mit sehr realistischen Holz- oder Steindekoren. Diese Variante besitzt ein Verriegelungssystem (Klickverbindung) und kann schwimmend verlegt werden.",
+  facts:[["Lieferform","Planken / Fliesen"],["Verlegung","schwimmend mit Klickverbindung, auf separater Dämmmatte"],["Typisch für","Wohn- und Objektbereich"]],
+  merke:"Der Gegenzug auf der Rückseite gleicht Spannungen aus, damit sich die Planke nicht verwölbt (nicht „schüsselt“).",
+  layers:[
+    {n:1,name:"PUR-Oberflächenversiegelung",tex:"clearBlue",t:.035,clear:true,
+     desc:"Transparente Versiegelung aus Polyurethan auf der Oberfläche.",
+     func:"Schützt vor Verschmutzung und Kratzern und erleichtert die Reinigung."},
+    {n:2,name:"Geprägte transparente PVC-Nutzschicht",tex:"clearGrain",t:.08,clear:true,
+     desc:"Durchsichtige PVC-Schicht mit eingeprägter Struktur, z. B. Holzporen.",
+     func:"Schützt das Dekor vor Abrieb. Die Prägung sorgt für eine natürliche Haptik passend zum Dekor."},
+    {n:3,name:"Dekorativer Dekorfilm",tex:"woodOrange",t:.045,
+     desc:"Bedruckte Folie mit dem Dekor.",
+     func:"Gibt dem Belag sein Aussehen, hier eine warme Holzoptik."},
+    {n:4,name:"PVC-Grundschicht mit Glasfaserarmierung und Verriegelungssystem",tex:"darkGrey",t:.2,profile:"click",
+     desc:"Tragende PVC-Schicht mit eingelegter Glasfaser und angeformtem Klickprofil an den Kanten.",
+     func:"Gibt Masse und Stabilität. Die Glasfaser hält die Planke maßstabil, das Profil verbindet die Planken leimfrei miteinander."},
+    {n:5,name:"Gegenzug",tex:"darkerGrey",t:.05,
+     desc:"Schicht auf der Rückseite der Planke.",
+     func:"Gleicht die Spannungen der oberen Schichten aus und verhindert, dass sich die Planke verwölbt."},
+    {n:6,name:"Dämmmatte (separat erhältlich)",tex:"matBrown",t:.12,separate:true,
+     desc:"Unterlage, die vor dem Belag lose auf dem Untergrund ausgelegt wird.",
+     func:"Mindert Tritt- und Gehschall und gleicht kleine Unebenheiten aus. Nur vom Hersteller freigegebene Matten verwenden."}
+  ]
+},
+{
+  id:"rigid",group:"elastisch",short:"Rigid-Designbelag",
+  title:"Rigid-Designboden (SPC)",
+  credit:"Aufbau nach Abb. wineo/Windmöller GmbH",
+  intro:"Rigid-Designbeläge haben einen sehr steifen Träger (SPC). Die ca. 5,5–6 mm hohen Paneele lassen sich schnell und leicht auch auf fast allen vorhandenen Altbelägen verlegen.",
+  facts:[["Höhe","ca. 5,5–6 mm"],["Verlegung","schwimmend mit Profilverbindung, auf separater Unterlagsmatte"],["Besonderheit","sehr formstabil, auch auf vielen Altbelägen verlegbar"]],
+  merke:"SPC steht für „Stone Plastic Composite“: ein Verbund aus mineralischem Füllstoff (Gesteinsmehl) und Kunststoff. Er macht das Paneel steif („rigid“).",
+  layers:[
+    {n:1,name:"PU-versiegelte strukturierte Oberfläche",tex:"clearBlue",t:.035,clear:true,
+     desc:"Transparente Polyurethan-Versiegelung mit fühlbarer Struktur.",
+     func:"Schützt die Oberfläche, erleichtert die Reinigung und sorgt für eine natürliche Haptik."},
+    {n:2,name:"PVC-Nutzschicht",tex:"clear",t:.08,clear:true,
+     desc:"Durchsichtige Verschleißschicht aus PVC.",
+     func:"Schützt den Dekorfilm vor Abrieb und bestimmt die Strapazierfähigkeit."},
+    {n:3,name:"Dekorfilm",tex:"woodGrey",t:.045,
+     desc:"Bedruckte Dekorfolie, hier in grauer Holzoptik.",
+     func:"Gibt dem Boden sein Aussehen."},
+    {n:4,name:"Elastische Oberschicht",tex:"nearBlack",t:.08,
+     desc:"Weiche, elastische Kunststoffschicht über dem Träger.",
+     func:"Bringt Elastizität und Gehkomfort und dämpft Geräusche beim Begehen."},
+    {n:5,name:"SPC-Träger mit Profilverbindung",tex:"spc",t:.3,profile:"click",
+     desc:"Steifer Kern aus Gesteinsmehl und Kunststoff mit Klickprofil.",
+     func:"Macht das Paneel formstabil und überbrückt kleine Unebenheiten im Untergrund. Das Profil verbindet die Paneele."},
+    {n:6,name:"Elastische Unterschicht",tex:"nearBlack",t:.07,
+     desc:"Elastische Schicht auf der Unterseite des Trägers.",
+     func:"Gleicht die Oberschicht aus (Gegenzug-Wirkung) und verbessert Komfort und Schalldämmung."},
+    {n:7,name:"Separate Unterlagsmatte",tex:"matTan",t:.12,separate:true,
+     desc:"Lose verlegte Unterlage unter den Paneelen.",
+     func:"Mindert den Trittschall und gleicht kleine Unebenheiten aus."}
+  ]
+},
+{
+  id:"pur-design",group:"elastisch",short:"PUR-Designbelag",
+  title:"PUR-Designbelag (PVC-frei)",
+  credit:"Aufbau nach Abb. wineo/Windmöller GmbH",
+  intro:"Ein Designbelag ohne PVC: Die Grundschicht besteht aus einem Verbundstoff auf Basis von Bio-Polyurethan (Handelsname „ecuran“).",
+  facts:[["Material","PVC-frei, Bio-Polyurethan"],["Verlegung","je nach Produkt verklebt oder mit Klickverbindung"],["Besonderheit","Dekorpapier statt Dekorfilm"]],
+  merke:"„PUR“ bzw. „PU“ steht für Polyurethan. Dieser Belag kommt ohne PVC aus – auch die Grundschicht ist aus Polyurethan.",
+  layers:[
+    {n:1,name:"Geprägte und versiegelte PU-Deckschicht",tex:"clearGrain",t:.07,clear:true,
+     desc:"Transparente, geprägte Deckschicht aus Polyurethan.",
+     func:"Schützt das Dekor vor Abrieb und Schmutz. Die Prägung sorgt für eine natürliche Oberfläche."},
+    {n:2,name:"Dekorpapier",tex:"woodLight",t:.04,
+     desc:"Bedrucktes Papier mit dem Dekor.",
+     func:"Gibt dem Belag sein Aussehen, hier eine helle Holzoptik."},
+    {n:3,name:"Stabilisierende Zwischenschicht",tex:"cream",t:.08,
+     desc:"Schicht zwischen Dekor und Grundschicht.",
+     func:"Stabilisiert den Aufbau und sorgt für eine gleichmäßige, ebene Unterlage für das Dekor."},
+    {n:4,name:"ecuran-Grundschicht (Bio-Polyurethan)",tex:"ecuran",t:.26,
+     desc:"Hochleistungsverbundstoff aus Bio-Polyurethan.",
+     func:"Tragende Schicht: gibt Masse, Stabilität und Strapazierfähigkeit – ohne PVC."},
+    {n:5,name:"Rückseitiger Gegenzug (Fleece-TEC-System)",tex:"textile",t:.07,
+     desc:"Vliesartige Schicht auf der Rückseite.",
+     func:"Gleicht Spannungen aus, damit der Belag plan liegt, und bildet die Rückseite zum Untergrund."}
+  ]
+},
+{
+  id:"multilayer",group:"elastisch",short:"Multilayer-Belag",
+  title:"Mehrschichtig modularer Fußbodenbelag (Multilayer)",
+  credit:"Aufbau nach Abb. wineo/Windmöller GmbH",
+  intro:"Multilayer-Beläge kombinieren eine elastische Designbelag-Oberfläche mit einer HDF-Trägerplatte und einer fest aufgebrachten Akustik-Dämmplatte.",
+  facts:[["Lieferform","Paneele"],["Verlegung","schwimmend mit Klickprofil"],["Besonderheit","Dämmung bereits integriert"]],
+  merke:"HDF = hochdichte Faserplatte aus Holzfasern. Holzwerkstoffe quellen bei Nässe – deshalb sind die Profile gegen Feuchtigkeit versiegelt.",
+  layers:[
+    {n:1,name:"PU-versiegelte strukturierte Oberfläche",tex:"clearBlue",t:.035,clear:true,
+     desc:"Transparente Polyurethan-Versiegelung mit Struktur.",
+     func:"Schützt die Oberfläche und erleichtert die Reinigung."},
+    {n:2,name:"PVC-Nutzschicht",tex:"clearGrain",t:.08,clear:true,
+     desc:"Durchsichtige Verschleißschicht aus PVC.",
+     func:"Schützt das Dekor vor Abrieb."},
+    {n:3,name:"Dekorfilm",tex:"woodRustic",t:.045,
+     desc:"Bedruckte Dekorfolie, hier eine rustikale Holzoptik.",
+     func:"Gibt dem Belag sein Aussehen."},
+    {n:4,name:"Glasfaserarmierte Grundschicht",tex:"darkGrey",t:.1,
+     desc:"Elastische Grundschicht mit eingelegter Glasfaser.",
+     func:"Hält die Oberschicht maßstabil und trägt das Dekor."},
+    {n:5,name:"Profilversiegelte feuchtigkeitsgeschützte HDF-Trägerplatte",tex:"hdf",t:.42,profile:"click",
+     desc:"Hochdichte Faserplatte mit Klickprofil. Die Profilkanten sind versiegelt.",
+     func:"Gibt dem Paneel Steifigkeit und überbrückt Unebenheiten. Die Versiegelung schützt die Kanten vor Feuchtigkeit."},
+    {n:6,name:"Akustik-Dämmplatte",tex:"green",t:.12,
+     desc:"Fest auf der Rückseite aufgebrachte Dämmschicht.",
+     func:"Reduziert Tritt- und Raumschall. Eine zusätzliche Unterlage ist in der Regel nicht nötig (Herstellerangaben beachten)."}
+  ]
+},
+{
+  id:"lino-paneel",group:"elastisch",proc:"lino",short:"Linoleum-Paneel",
+  title:"Fußbodenpaneel mit einem Linoleumbelag",
+  credit:"Aufbau nach Lehrbuchabbildung",
+  intro:"Hier wird ein elastischer Bodenbelag (Linoleum) auf eine HDF-Trägerplatte aufgebracht. So entsteht ein Paneel, das wie Laminat schwimmend verlegt werden kann.",
+  facts:[["Lieferform","Paneele"],["Verlegung","schwimmend mit Klickprofil"],["Besonderheit","Linoleum aus überwiegend natürlichen Rohstoffen"]],
+  merke:"Linoleum besteht vor allem aus Leinöl, Harzen, Holz- oder Korkmehl, Kalksteinmehl und Farbpigmenten auf einem Jutegewebe.",
+  layers:[
+    {n:1,name:"Oberflächenvergütung",tex:"clearBlue",t:.04,clear:true,
+     desc:"Transparente Schutzschicht auf dem Linoleum.",
+     func:"Schützt vor Verschmutzung und erleichtert die Reinigung und Pflege."},
+    {n:2,name:"Elastischer Bodenbelag (Linoleum)",tex:"lino",t:.2,
+     desc:"Durchgefärbter Linoleumbelag, hier marmoriert in Grün.",
+     func:"Nutz- und Dekorschicht zugleich: strapazierfähig, elastisch und angenehm zu begehen."},
+    {n:3,name:"HDF-Trägerplatte",tex:"hdf",t:.42,profile:"click",
+     desc:"Hochdichte Faserplatte mit Nut-und-Feder- bzw. Klickprofil.",
+     func:"Trägt den Belag, macht das Paneel steif und verbindet die Paneele miteinander."},
+    {n:4,name:"Kork-Gegenzug",tex:"cork",t:.1,
+     desc:"Korkschicht auf der Rückseite der Trägerplatte.",
+     func:"Wirkt als Gegenzug gegen Verwölben und mindert zusätzlich den Trittschall."}
+  ]
+},
+/* ---------------- SKRIPTUM: Schichtaufbau & Elastomer (Heft 1) ---------------- */
+{
+  id:"schichten",group:"skript",short:"Schichten allgemein (Kap. 1)",proc:"streich",
+  title:"Schichten eines heterogenen Belags (Heft 1, Kap. 1)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 1, Kap. 1 „Aufbau und Schichten der Bodenbeläge“",
+  intro:"In den lieferbaren Bodenbelägen ist je nach Konstruktion eine oder mehrere dieser Schichten enthalten. Homogene PVC-Beläge können aus einer einzigen Schicht bestehen, CV-Beläge haben Nutzschicht, Schaumstoffschicht, Stabilisierungseinlage und Rücken.",
+  facts:[["Kapitel","Heft 1, Kap. 1 – Aufbau und Schichten"],["Beispiel","heterogener Belag mit allen fünf Schichtarten"]],
+  merke:"Je dicker die Nutzschicht, desto länger hält der Belag. Beim homogenen Belag ist die Nutzschicht so dick wie der ganze Belag.",
+  layers:[
+    {n:1,name:"Nutzschicht",tex:"clearGrain",t:.09,clear:true,
+     desc:"Oberste Schicht, unmittelbar der Benutzung und dem Verschleiß ausgesetzt.",
+     func:"Gibt dem Boden sein Erscheinungsbild; muss abriebfest, rutschsicher und pflegeleicht sein."},
+    {n:2,name:"Oberschicht",tex:"woodMid",t:.08,
+     desc:"Eine oder mehrere feste Schichten, die nicht geschäumt oder stabilisiert sind.",
+     func:"Wirkt stabilisierend und lastverteilend."},
+    {n:3,name:"Schaumstoffschicht",tex:"foam",t:.2,
+     desc:"Geschäumte Schicht.",
+     func:"Steigert den Gehkomfort."},
+    {n:4,name:"Stabilisierungseinlage (Träger)",tex:"fleece",t:.05,
+     desc:"Schicht aus Gewebe oder Vlies.",
+     func:"Sichert vor allem die Formstabilität des Bodenbelages."},
+    {n:5,name:"Rücken",tex:"pvcBack",t:.1,
+     desc:"Gewebe, Vlies oder Schaum auf der Unterseite.",
+     func:"Schützt die Stabilisierungseinlage vor mechanischer Zerstörung (Reiben auf dem Untergrund), steigert den Komfort und muss klebbar sein."}
+  ]
+},
+{
+  id:"elastomer-eben",group:"skript",short:"Elastomer eben (EN 1816)",proc:"kautschuk",
+  title:"Ebener Elastomerbelag mit Schaumstoffbeschichtung (EN 1816)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 1, Kap. 5 „Belagsarten und Aufbau“",
+  intro:"Ebene Elastomerbeläge gibt es als Bahnen und Platten mit glatter, geprägter oder genarbter Oberfläche ab 2 mm. Die Rückseite ist glatt geschliffen (EN 1817) oder hat eine Schaumstoffbeschichtung (EN 1816).",
+  facts:[["Norm","EN 1816 (mit Schaumstoff) · EN 1817 (Rückseite geschliffen)"],["Dicke","ab 2 mm"],["Oberfläche","glatt, geprägt oder genarbt"],["Lieferform","Bahnen und Platten"]],
+  merke:"Homogene Elastomerbeläge haben in allen Schichten die gleiche Zusammensetzung und durchgehend die gleiche Farbe bzw. Musterung.",
+  layers:[
+    {n:1,name:"Elastomer-Nutzschicht (homogen, Einstreumuster)",tex:"rubberChips",t:.24,
+     desc:"Vulkanisierter Kautschuk, durchgehend gleich gefärbt und gemustert.",
+     func:"Sehr abriebfest, dauerelastisch, weitgehend zigarettenglutbeständig."},
+    {n:2,name:"Schaumstoffbeschichtung",tex:"foam",t:.16,
+     desc:"Geschäumte Rückenschicht (EN 1816).",
+     func:"Erhöht den Gehkomfort und dämpft den Trittschall."}
+  ]
+},
+{
+  id:"elastomer-hetero",group:"skript",short:"Elastomer heterogen",proc:"kautschuk",
+  title:"Heterogener Elastomerbelag",
+  credit:"Nach Skriptum Elastische Beläge, Heft 1, Kap. 5 „Belagsarten und Aufbau“",
+  intro:"Heterogene Elastomerbeläge bestehen aus einer mindestens 1 mm dicken Nutzschicht und weiteren kompakten Schichten, teils mit Stabilisierungseinlage.",
+  facts:[["Nutzschicht","mindestens 1 mm"],["Aufbau","Nutzschicht + kompakte Schichten, teils mit Stabilisierungseinlage"]],
+  merke:"Gummi ist vulkanisierter Kautschuk. Erst durch die Vulkanisation wird aus der plastischen Kautschukmasse ein elastisches Elastomer.",
+  layers:[
+    {n:1,name:"Nutzschicht (mind. 1 mm)",tex:"rubberChips",t:.14,
+     desc:"Gemusterte Elastomerschicht, mindestens 1 mm dick.",
+     func:"Verschleißschicht und Optik."},
+    {n:2,name:"Kompakte Schicht",tex:"rubber",t:.12,
+     desc:"Ungeschäumte, kompakte Elastomerschicht.",
+     func:"Gibt Masse und verteilt Lasten."},
+    {n:3,name:"Stabilisierungseinlage",tex:"fleece",t:.04,
+     desc:"Einlage aus Gewebe oder Vlies (nicht bei allen Produkten).",
+     func:"Sichert die Formstabilität."},
+    {n:4,name:"Kompakte Unterschicht, Rückseite geschliffen",tex:"rubber",t:.12,
+     desc:"Untere Elastomerschicht mit glatt geschliffener Rückseite.",
+     func:"Schützt die Einlage; die geschliffene Rückseite ist gut klebbar."}
+  ]
+},
+{
+  id:"elastomer-noppen",group:"skript",short:"Elastomer profiliert (EN 12199)",proc:"kautschuk",
+  title:"Profilierter Elastomerbelag mit Rundnoppen (EN 12199)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 1, Kap. 5 „Belagsarten und Aufbau“",
+  intro:"Platten mit Rundnoppen ab 2,5 mm, nur unifarben, rutschhemmend, Rückseite glatt geschliffen. Einsatz: Treppen, Eingänge, Verkehrsflächen, Werkstätten.",
+  facts:[["Norm","EN 12199"],["Dicke","ab 2,5 mm"],["Farbe","nur unifarben"],["Lieferform","Platten"],["Herstellung","mit der Vulkanisierpresse"]],
+  merke:"Beläge mit profilierter Oberfläche werden mit einer Vulkanisierpresse hergestellt.",
+  layers:[
+    {n:1,name:"Rundnoppen (Profilierung)",tex:"rubber",t:.07,noppen:true,
+     desc:"Eingepresste Rundnoppen auf der Oberfläche.",
+     func:"Machen den Belag rutschhemmend."},
+    {n:2,name:"Elastomerplatte, unifarben",tex:"rubber",t:.22,
+     desc:"Durchgefärbte, vulkanisierte Kautschukplatte.",
+     func:"Tragende, dauerelastische Platte."},
+    {n:3,name:"Glatt geschliffene Rückseite",tex:"rubberBack",t:.03,
+     desc:"Angeschliffene Unterseite der Platte.",
+     func:"Bietet dem Klebstoff eine gute Haftfläche."}
+  ]
+},
+{
+  id:"kork-pvc",group:"skript",short:"Korkfliese mit PVC (EN 655)",proc:"kork",
+  title:"Korkfliese auf Presskork-Rücken mit PVC-Nutzschicht (EN 655)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 1, Kap. 6 „Lieferformen“",
+  intro:"Platten, deren Hauptbestandteil Presskork ist. Die Nutzschicht besteht aus transparentem homogenem PVC.",
+  facts:[["Norm","EN 655"],["Nutzschicht","0,15–0,65 mm transparentes PVC"],["Gesamtdicke","2–4 mm"],["Formate","30 × 30 und 30 × 60 cm"],["Verlegung","vollflächig verklebt"]],
+  merke:"Es ist zwischen unbehandelten und mit PVC beschichteten Korkbelägen zu unterscheiden.",
+  layers:[
+    {n:1,name:"Transparente PVC-Nutzschicht",tex:"clearGrain",t:.08,clear:true,
+     desc:"Transparentes, homogenes PVC (0,15–0,65 mm).",
+     func:"Schützt den Kork vor Verschleiß – keine Endbeschichtung vor Ort nötig."},
+    {n:2,name:"Presskork-Rücken",tex:"cork",t:.24,
+     desc:"Hauptbestandteil der Platte: gepresstes Korkgranulat.",
+     func:"Sorgt für Elastizität, Wärme- und Schalldämmung."}
+  ]
+},
+{
+  id:"kork-press",group:"skript",short:"Presskorkplatte (EN 12104)",proc:"kork",
+  title:"Presskorkplatte (EN 12104)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 1, Kap. 6 „Lieferformen“",
+  intro:"Platten aus Presskork, die eine Endbeschichtung erfordern – werkseitig oder vor Ort.",
+  facts:[["Norm","EN 12104"],["Dicke","3,2 bis über 4 mm"],["Formate","30 × 30 und 30 × 60 cm"],["Endbeschichtung","Wasserlack, UV-gehärteter Acryllack oder Hartwachsöl"]],
+  merke:"Werkseitig nicht behandelte Korkböden werden nach dem Schleifen geölt, gewachst oder versiegelt.",
+  layers:[
+    {n:1,name:"Endbeschichtung",tex:"oilFinish",t:.035,clear:true,
+     desc:"Wasserlack, UV-gehärteter Acryllack oder Hartwachsöl.",
+     func:"Schließt den offenporigen Kork und schützt ihn."},
+    {n:2,name:"Presskorkplatte",tex:"cork",t:.3,
+     desc:"Gepresstes, gebackenes Korkgranulat.",
+     func:"Elastisch, wärme- und schalldämmend, antistatisch."}
+  ]
+},
+{
+  id:"kork-fertig",group:"skript",short:"Kork-Fertigfußboden",proc:"kork",
+  title:"Kork-Fertigfußboden (EN ISO 20326)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 1, Kap. 6 „Lieferformen“",
+  intro:"Die ca. 10–12 mm starken Paneele werden schwimmend mit Klicksystem verlegt; es gibt auch Kork-Fertigböden zum Kleben.",
+  facts:[["Norm","EN ISO 20326"],["Dicke","ca. 10–12 mm"],["Verlegung","schwimmend mit Klicksystem (auch zum Kleben)"]],
+  merke:"Der Presskork-Gegenzug unten dämmt zusätzlich Wärme und Schall.",
+  layers:[
+    {n:1,name:"Transparente Versiegelung",tex:"clearBlue",t:.035,clear:true,
+     desc:"Werkseitige, transparente Versiegelung.",
+     func:"Schützt die Kork-Nutzschicht."},
+    {n:2,name:"Presskork-Nutzschicht (2–3 mm)",tex:"cork",t:.16,
+     desc:"Presskork, auch furniert oder digital bedruckt.",
+     func:"Sichtbare, elastische Oberfläche."},
+    {n:3,name:"HDF-Trägerplatte",tex:"hdf",t:.42,profile:"click",
+     desc:"Hochdichte Faserplatte mit Klicksystem.",
+     func:"Gibt dem Paneel Stabilität und verbindet die Paneele."},
+    {n:4,name:"Presskork-Gegenzug",tex:"cork",t:.1,
+     desc:"Korkschicht auf der Rückseite.",
+     func:"Gegenzug – dämmt Wärme und Schall."}
+  ]
+},
+/* ---------------- SKRIPTUM: Verlegung (Heft 2) ---------------- */
+{
+  id:"verklebt",group:"verlegung",short:"Verklebter Systemaufbau",
+  title:"Verklebter Belag – Systemaufbau auf Estrich (Heft 2)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 2, Kap. 1 und 2 (Untergrund, Klebstoffe und Klebeverfahren)",
+  intro:"Der Untergrund muss eben, trocken, tragfähig, sauber, staubfrei und rissfrei sein. Vor Beginn wird er geprüft (Prüfpflichten nach ÖNORM B 5236 und FCIÖ-Merkblatt 8). Standard sind lösemittelfreie, emissionsarme Dispersionsklebstoffe.",
+  facts:[["Prüfen","CM-Messung, Oberflächenfestigkeit, Ebenheit, Risse, Temperatur"],["Spachtelung","nicht saugfähige Untergründe: mineralisch mind. 2,5 mm; unter Designbelägen mind. 2 mm"],["Klebeverfahren","Nassbett (Dispersion) – nur auf gleichmäßig saugfähigem Untergrund"],["Anreiben","von der Mitte nach außen, dann mit Walze (mind. 50 kg) anwalzen"]],
+  merke:"Das Nassbettverfahren funktioniert nur auf gleichmäßig saugfähigem Untergrund – deshalb wird gespachtelt.",
+  layers:[
+    {n:1,name:"Elastischer Belag",tex:"linoGrey",t:.12,
+     desc:"z. B. Linoleum-, PVC- oder Elastomerbelag.",
+     func:"Wird ins nasse, kurz abgelüftete Klebstoffbett eingelegt und angerieben."},
+    {n:2,name:"Klebstoff (Nassbett, Dispersion)",tex:"adhesive",t:.05,
+     desc:"Mit der Zahnleiste aufgetragener Dispersionsklebstoff (z. B. EMICODE EC1).",
+     func:"Verbindet Belag und Untergrund vollflächig."},
+    {n:3,name:"Spachtelmasse",tex:"spachtel",t:.12,separate:true,
+     desc:"Mineralische Spachtelung (mind. 2,5 mm auf nicht saugfähigem Untergrund).",
+     func:"Schafft einen ebenen, gleichmäßig saugfähigen Untergrund für das Nassbett."},
+    {n:4,name:"Vorstrich (Grundierung)",tex:"primer",t:.03,separate:true,
+     desc:"Grundierung auf dem Estrich.",
+     func:"Bindet Staub und verbessert die Haftung der Spachtelmasse."},
+    {n:5,name:"Estrich (Untergrund)",tex:"screed",t:.45,separate:true,
+     desc:"Geprüfter Untergrund (z. B. Zementestrich).",
+     func:"Tragender Untergrund – eben, trocken, tragfähig, sauber, rissfrei."}
+  ]
+},
+{
+  id:"ableitfaehig",group:"verlegung",short:"Ableitfähige Verklebung",
+  title:"Ableitfähige Verklebung mit Kupferbändern (Heft 2)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 2, Kap. „Ableitfähige Verklebung“",
+  intro:"EDV-Räume und Räume mit elektronischen Geräten brauchen eine leitfähige Bodenkonstruktion: Belag, Verlegeart und Klebstoff müssen ableitfähig sein. Den Anschluss an die Erdung macht immer eine Elektrofachkraft.",
+  facts:[["Kupferbänder","quer zur Bahnenrichtung im Abstand von 60–80 cm, mit leitfähigem Klebstoff auf den Spachtel (bei Fliesen unter jede Reihe)"],["Ringleitung","zwei Querbänder ca. 25 cm von der Wand"],["Erdung","je ca. 30 m² eine Erdungsstelle"],["Alternative","leitfähige Beschichtungsmasse mit der Rolle; je 30 m² ein ca. 120 cm langes Kupferband, 20 cm an der Wand überstehend"]],
+  merke:"FCIÖ-Merkblatt 21 bevorzugt die Verlegung ohne Querleitschicht (leitfähige Beschichtungsmasse).",
+  layers:[
+    {n:1,name:"Ableitfähiger Belag",tex:"esd",t:.12,
+     desc:"z. B. ableitfähige PVC-Platten aus dem Pressverfahren.",
+     func:"Leitet elektrostatische Ladungen über durchgehend leitfähige Zonen nach unten ab."},
+    {n:2,name:"Leitfähiger Klebstoff",tex:"condAdh",t:.05,
+     desc:"Klebstoff mit leitfähigen Bestandteilen.",
+     func:"Verbindet den Belag elektrisch mit den Kupferbändern."},
+    {n:3,name:"Kupferbänder",tex:"copper",t:.02,strips:true,separate:true,
+     desc:"Quer zur Bahnenrichtung, Abstand 60–80 cm; zur Ringleitung verbunden.",
+     func:"Sammeln die Ladung und führen sie zur Erdungsstelle (je ca. 30 m²)."},
+    {n:4,name:"Spachtelmasse",tex:"spachtel",t:.12,separate:true,
+     desc:"Ebene Spachtelung auf dem Estrich.",
+     func:"Untergrund für Kupferbänder und Klebstoff."},
+    {n:5,name:"Vorstrich (Grundierung)",tex:"primer",t:.03,separate:true,
+     desc:"Grundierung auf dem Estrich.",
+     func:"Bindet Staub und verbessert die Haftung."},
+    {n:6,name:"Estrich (Untergrund)",tex:"screed",t:.45,separate:true,
+     desc:"Geprüfter Untergrund.",
+     func:"Tragender Untergrund."}
+  ]
+},
+{
+  id:"klick",group:"verlegung",short:"Klick-Designbelag schwimmend",
+  title:"Klick-Designbelag schwimmend verlegt (Heft 2)",
+  credit:"Nach Skriptum Elastische Beläge, Heft 2, Kap. „Klick-Designbeläge schwimmend verlegen“",
+  intro:"Mineralische Untergründe werden grundiert (Staub binden). Darauf kommt eine Dämmunterlage quer zur Elementrichtung. Auch auf festen Altbelägen möglich (Parkett, Laminat, Fliesen mit max. 5 mm Fugen, PVC, Stein); textile Beläge müssen entfernt werden.",
+  facts:[["Bewegungsfuge","5–10 mm an Wänden und allen festen Bauteilen (FCIÖ: Randfuge ca. 5 mm)"],["Erste Reihe","von links nach rechts, Federseite zur Wand, mit Abstandhaltern"],["Kopfstöße","mit leichtem Gummihammerschlag verriegeln"],["Nächste Reihe","Restelement (mind. 30 cm), im 30°-Winkel einsetzen und absenken"],["Flächengrenzen","nach Hersteller (Fachbuch: ca. 150 m², ca. 12 m)"]],
+  merke:"Ohne Bewegungsfuge wölbt sich der schwimmend verlegte Belag bei Temperaturschwankungen auf oder die Klickverbindungen brechen.",
+  layers:[
+    {n:1,name:"Klick-Designbelag",tex:"woodOrange",t:.2,profile:"click",
+     desc:"Designbelag-Element mit Klickprofil.",
+     func:"Wird ohne Klebstoff schwimmend verlegt; die Elemente verriegeln miteinander."},
+    {n:2,name:"Dämmunterlage (quer zur Elementrichtung)",tex:"matBrown",t:.1,separate:true,
+     desc:"Unterlage, quer zur Verlegerichtung der Elemente ausgelegt.",
+     func:"Dämmt Tritt- und Raumschall, nimmt kleine Unebenheiten auf, verbessert den Gehkomfort."},
+    {n:3,name:"Grundierung",tex:"primer",t:.03,separate:true,
+     desc:"Grundierung auf dem mineralischen Untergrund.",
+     func:"Bindet Staub."},
+    {n:4,name:"Estrich (Untergrund)",tex:"screed",t:.45,separate:true,
+     desc:"Mineralischer Untergrund.",
+     func:"Tragender Untergrund."}
+  ]
+}
+,
+/* ---------------- FORBO ---------------- */
+{
+  id:"marmoleum",group:"forbo",maker:"Forbo Flooring",short:"Marmoleum",proc:"lino",
+  title:"Forbo Marmoleum – Linoleum-Bahnenware",
+  credit:"Angaben nach Technischen Spezifikationen Marmoleum (Forbo Flooring)",
+  intro:"Linoleum aus überwiegend natürlichen Rohstoffen, durchgehend marmoriert auf einem Jutegewebe. Werkseitig mit der Oberflächenvergütung Topshield Pro ausgerüstet.",
+  facts:[["Gesamtdicke","2,0 / 2,5 / 3,2 mm; Decibel 3,5 mm; Acoustic 4,0 mm"],["Oberfläche","Topshield Pro"],["Norm","EN ISO 24011"],["Rohstoffe","Leinöl, Jute, Baumharze, Holz- und Kalksteinmehl"],["Lieferform","Bahnen"],["Besonderheit","frei von PVC und Weichmachern; 2,0 und 2,5 mm laut Hersteller CO₂-neutral hergestellt"]],
+  merke:"Linoleum ist durchgefärbt: Die Musterung geht durch die ganze Nutzschicht. Abnutzung verändert das Aussehen daher kaum.",
+  sources:[["Forbo – Technische Spezifikationen Marmoleum","https://cdn.nextproducts.at/m20/97/43576497/etc/55/46086555.pdf"],["Forbo – Technische Spezifikationen Marmoleum 2,5 mm / Decibel","https://forbo.blob.core.windows.net/forbodocuments/dac847df-a9b5-4983-bd83-4c22edd83481/Marmoleum Solid tech specs SUI 2024.pdf"]],
+  layers:[
+    {n:1,name:"Oberflächenvergütung Topshield Pro",tex:"clearBlue",t:.035,clear:true,
+     desc:"Werkseitig aufgebrachte, transparente Schutzschicht.",
+     func:"Schützt vor Verschmutzung und färbenden Substanzen und erleichtert die Reinigung."},
+    {n:2,name:"Linoleum-Nutzschicht (marmoriert)",tex:"linoGrey",t:.22,
+     desc:"Durchgefärbte Masse aus Linoleumzement (Leinöl + Harze), Holzmehl, Kalksteinmehl und Pigmenten.",
+     func:"Begehbare, strapazierfähige und elastische Schicht – Farbe und Muster gehen durch die ganze Dicke."},
+    {n:3,name:"Jutegewebe (Träger)",tex:"jute",t:.06,
+     desc:"Grobes Gewebe aus Jutefasern auf der Rückseite.",
+     func:"Trägt die Linoleummasse beim Kalandrieren und gibt der Bahn Festigkeit; verbessert die Haftung des Klebstoffs."}
+  ]
+},
+{
+  id:"step",group:"forbo",maker:"Forbo Flooring",short:"Step Sicherheitsbelag",
+  title:"Forbo Step – Surestep / Safestep Sicherheitsbeläge",
+  credit:"Angaben nach Forbo Step Technical Specifications 2024 und Produktseiten",
+  intro:"Rutschhemmende Vinylbeläge in Bahnen. Die Step-Kollektion gliedert sich in Surestep (R10), Safestep (R11, R12) und Nassraum-Beläge für Barfußbereiche (Surestep Laguna, Safestep Aqua).",
+  facts:[["Gesamtdicke","2,0 mm"],["Nutzschicht","0,70 mm"],["Oberfläche","PUR Pearl (Safestep: PUR)"],["Rutschhemmung","Surestep R10 · Safestep R11 / R12 · Laguna/Aqua für Barfußbereiche"],["Nutzungsklassen","34 (gewerblich) · 43 (leicht industriell)"],["Rollen","2,0 m breit, bis 27 m lang"]],
+  merke:"Bei Sicherheitsbelägen stecken die Rutschhemm-Partikel in der ganzen Nutzschicht – deshalb bleibt die Rutschhemmung auch bei Abnutzung erhalten.",
+  sources:[["Forbo – Step Technical Specifications 2024","https://modern.saltash.gov.uk/documents/s12376/Forbo_Step_technical-specifications_2024.pdf"],["Forbo – Step safety vinyl (Übersicht)","https://www.forbo.com/flooring/en-ie/products/step-safety-vinyl/cx5ow0"]],
+  layers:[
+    {n:1,name:"PUR-Vergütung (PUR Pearl)",tex:"clearBlue",t:.035,clear:true,
+     desc:"Transparente Polyurethan-Vergütung auf der Oberfläche.",
+     func:"Erleichtert die Reinigung – trotz der rauen, rutschhemmenden Oberfläche."},
+    {n:2,name:"Nutzschicht mit Rutschhemm-Partikeln (0,70 mm)",tex:"safety",t:.16,
+     desc:"PVC-Nutzschicht, in der harte Partikel (z. B. Siliziumkarbid oder Quarz) über die ganze Dicke verteilt sind.",
+     func:"Die Partikel erhöhen den Gleitwiderstand (R-Klasse). Weil sie durch die ganze Schicht gehen, wirkt die Rutschhemmung dauerhaft."},
+    {n:3,name:"Trägerschicht (PVC)",tex:"pvcBack",t:.2,
+     desc:"Kompakte PVC-Unterschicht; je nach Kollektion mit Recyclinganteil.",
+     func:"Gibt dem Belag Dicke, Stabilität und eine ebene Rückseite zum Verkleben."}
+  ]
+},
+{
+  id:"sarlon",group:"forbo",maker:"Forbo Flooring",short:"Sarlon 19 dB (Akustik)",
+  title:"Forbo Sarlon – Akustik-Vinylbelag",
+  credit:"Angaben nach Forbo Sarlon Produktdaten (Heinze, bimobject, Forbo)",
+  intro:"Heterogener Vinylbelag mit Schaumrücken, der den Trittschall deutlich mindert. Es gibt ihn mit 15 dB oder 19 dB Trittschallverbesserung.",
+  facts:[["Gesamtdicke","3,4 mm (19 dB) · 2,6 mm (15 dB)"],["Trittschallverbesserung","19 dB bzw. 15 dB (EN ISO 717-2)"],["Nutzschicht","0,70 mm (Angabe Sarlon 15 dB)"],["Oberfläche","XtremPUR"],["Rutschhemmung","R10"],["Lieferform","Bahnen 2 m breit"]],
+  merke:"Trittschallverbesserung (ΔLw in dB) = wie viel leiser der Gehschall im Raum darunter wird. Je dicker und weicher der Rücken, desto höher der Wert – aber desto größer auch der Resteindruck.",
+  sources:[["Heinze – Sarlon Cement (Forbo)","https://www.heinze.de/produkt/sarlon-cement/43315460/"],["bimobject – Sarlon Material 15 dB","https://www.bimobject.com/sv/forbo/product/sarlon-material-15-db-acoustic-vinyl"]],
+  layers:[
+    {n:1,name:"XtremPUR-Vergütung",tex:"clearBlue",t:.035,clear:true,
+     desc:"Transparente PUR-Lackschicht.",
+     func:"Schützt die Oberfläche und erleichtert die Reinigung."},
+    {n:2,name:"Nutzschicht mit Dekor",tex:"stoneDecor",t:.15,
+     desc:"PVC-Nutzschicht mit Design (z. B. Beton- oder Steinoptik).",
+     func:"Strapazierfähige, sichtbare Oberfläche."},
+    {n:3,name:"Kompakte Trägerschicht",tex:"pvcBack",t:.1,
+     desc:"Stabilisierende PVC-Zwischenschicht (vereinfachte Darstellung).",
+     func:"Verbindet Nutzschicht und Schaum und hält den Belag maßstabil."},
+    {n:4,name:"Akustik-Schaumrücken",tex:"foam",t:.24,
+     desc:"Geschäumte Rückenschicht.",
+     func:"Dämpft den Trittschall (15 bzw. 19 dB) und erhöht den Gehkomfort."}
+  ]
+},
+{
+  id:"colorex",group:"forbo",maker:"Forbo Flooring",short:"Colorex (ESD)",proc:"press",
+  title:"Forbo Colorex SD/EC – ableitfähige / leitfähige Fliesen",
+  credit:"Angaben nach Forbo Colorex Produktseiten und Broschüre",
+  intro:"Homogene, gepresste Vinylfliesen für Bereiche, in denen elektrostatische Entladungen (ESD) Schaden anrichten können – z. B. Elektronikfertigung, Reinräume, OP-Säle. SD = ableitfähig, EC = leitfähig.",
+  facts:[["Bauart","homogene, gepresste Vinylfliese"],["Herstellung","leitfähig beschichtete Chips → zu einem Block gepresst → in Scheiben geschnitten"],["Wirkung","dauerhaft, unabhängig von der Luftfeuchtigkeit"],["Verlegung","mit leitfähigem Klebstoff (z. B. Forbo C 930)"],["Schweißen","für ESD-Bereiche optional, im Reinraum Pflicht"]],
+  merke:"ESD-Böden funktionieren nur als System: leitfähiger Belag + leitfähiger Klebstoff + Erdung + ESD-Schuhe.",
+  sources:[["Forbo – Colorex EC","https://forbo.com/flooring/en-us/products/esd-cleanroom-flooring/colorex-ec/bsofcr"],["Forbo – Colorex FAQ","https://forbo.com/flooring/en-au/faq/colorex-faq/pe63sr"]],
+  layers:[
+    {n:1,name:"Homogene Vinylschicht mit leitfähigen Adern",tex:"esd",t:.26,
+     desc:"Durchgehend gleiches Material: gepresste Vinyl-Chips, deren leitfähige Beschichtung ein Netz aus „Adern“ bildet.",
+     func:"Leitet elektrische Ladung von Personen und Geräten über die Adern in den Untergrund ab."},
+    {n:2,name:"Leitfähiger Klebstoff",tex:"darkGrey",t:.04,separate:true,
+     desc:"Spezieller Klebstoff, der Strom leitet.",
+     func:"Verbindet die Fliesen elektrisch miteinander und mit der Erdung."},
+    {n:3,name:"Kupferband zur Erdung",tex:"copper",t:.03,separate:true,
+     desc:"Leitband unter dem Belag, an den Potentialausgleich angeschlossen (übliche Ausführung, Herstellerangaben beachten).",
+     func:"Führt die Ladung sicher zur Erde ab."}
+  ]
+},
+/* ---------------- INKU ---------------- */
+{
+  id:"jokaleum",group:"inku",maker:"INKU (Marke JOKA)",short:"Jokaleum Linoleum",proc:"lino",
+  title:"INKU / JOKA Jokaleum – Linoleum",
+  credit:"Angaben nach INKU-Shop (Produktliste Elastische Bodenbeläge)",
+  intro:"Linoleum-Bahnenware aus dem INKU-Sortiment, 2,5 mm dick und 2 m breit, mit werkseitigem Oberflächenschutz (Varianten Neocare bzw. LPX).",
+  facts:[["Gesamtdicke","2,5 mm"],["Bahnenbreite","200 cm"],["Oberfläche","Neocare bzw. LPX (je nach Linie)"],["Linien","z. B. Jokaleum Color, Jokaleum Ara"]],
+  merke:"Linoleum und PVC sehen ähnlich aus, sind aber völlig verschiedene Werkstoffe: Linoleum entsteht aus oxidiertem Leinöl, PVC ist ein Kunststoff.",
+  sources:[["INKU-Shop – Elastische Bodenbeläge","https://www.inkushop.at/Elastische-Bodenbelaege-3071.html"]],
+  layers:[
+    {n:1,name:"Oberflächenschutz (Neocare / LPX)",tex:"clearBlue",t:.035,clear:true,
+     desc:"Werkseitige Schutzvergütung.",
+     func:"Macht das Linoleum fleckunempfindlicher und leichter zu reinigen."},
+    {n:2,name:"Linoleum-Nutzschicht",tex:"lino",t:.22,
+     desc:"Durchgefärbte Linoleummasse.",
+     func:"Elastische, strapazierfähige Nutzschicht."},
+    {n:3,name:"Jutegewebe (Träger)",tex:"jute",t:.06,
+     desc:"Gewebe aus Jute auf der Rückseite.",
+     func:"Träger beim Kalandrieren; gibt Festigkeit und Haftung beim Verkleben."}
+  ]
+},
+{
+  id:"design330",group:"inku",maker:"INKU / JOKA",short:"Design 330 (Dryback)",
+  title:"INKU / JOKA Designböden 330 – heterogener PVC zum Kleben",
+  credit:"Angaben nach Technischem Datenblatt Designböden 330 (W. & L. Jordan / INKU Jordan, 01/2022)",
+  intro:"Designbelag (LVT) aus heterogenem PVC in Steinoptik mit umlaufender Microfase. Wird vollflächig verklebt („Dryback“).",
+  facts:[["Material","heterogener PVC"],["Nutzschicht","0,40 mm"],["Oberfläche","PU-Vergütung"],["Optik","Steinoptiken mit umlaufender Microfase"],["Verlegung","vollflächige Verklebung"],["Verwandte Kollektion","Design 340: 2,0 mm, Nutzschicht 0,4 mm (Holzoptik)"]],
+  merke:"„Heterogen“ heißt: Der Belag besteht aus mehreren Schichten unterschiedlicher Zusammensetzung – das Dekor liegt nur in einer dünnen Schicht unter der transparenten Nutzschicht.",
+  sources:[["Technisches Datenblatt Designböden 330","https://belago.de/uploads/tx_aimeos/1.d/files/4/6/4654ae62_Joka-330-Technisches-Datenblatt.pdf"]],
+  layers:[
+    {n:1,name:"PU-Vergütung",tex:"clearBlue",t:.035,clear:true,
+     desc:"Transparente Polyurethan-Vergütung.",
+     func:"Schützt die Nutzschicht und erleichtert die Pflege."},
+    {n:2,name:"Transparente Nutzschicht 0,40 mm",tex:"clearGrain",t:.09,clear:true,
+     desc:"Durchsichtige PVC-Verschleißschicht, 0,40 mm dick.",
+     func:"Schützt das Dekor vor Abrieb; die Dicke bestimmt die Belastbarkeit."},
+    {n:3,name:"Dekorfilm (Steinoptik)",tex:"stoneDecor",t:.045,
+     desc:"Bedruckte PVC-Folie.",
+     func:"Gibt dem Belag sein Aussehen."},
+    {n:4,name:"PVC-Trägerschicht",tex:"pvcBack",t:.22,
+     desc:"Kompakte PVC-Grundschicht (vereinfachte Darstellung).",
+     func:"Gibt Masse und Stabilität; Rückseite wird verklebt."}
+  ]
+},
+{
+  id:"polysafe",group:"inku",maker:"Polyflor (im INKU-Sortiment)",short:"Polysafe Standard PUR",
+  title:"Polysafe Standard PUR – Sicherheitsbelag R10",
+  credit:"Angaben nach INKU-Shop und Technischem Datenblatt Polysafe Standard PUR (objectflor)",
+  intro:"Rutschhemmender PVC-Sicherheitsbelag in Bahnen. Sicherheitspartikel sind in das Vinyl eingearbeitet, die PUR-Vergütung erleichtert die Reinigung.",
+  facts:[["Gesamtdicke","2,0 mm (auch 2,5 mm erhältlich)"],["Lieferform","Bahnen 2 m × 20 m"],["Rutschhemmung","R10"],["Nutzungsklassen","23 · 34 · 43"],["Brandverhalten","Bfl-s1"],["Trittschallverbesserung","2 dB"],["Elektrostatik","≤ 2 kV, antistatisch"]],
+  merke:"Die R-Klasse (R9 bis R13) wird auf der schiefen Ebene mit Schuhen geprüft – je höher die Zahl, desto rutschhemmender.",
+  sources:[["INKU-Shop – Polysafe Standard PUR 2,0 mm","https://www.inkushop.at/Elastische-Bodenbelaege/PVC-Belaege/Sicherheitsbelaege/Vinyl-Boden-POLYSAFE-STANDARD-PUR-20mm-Sicherheitsboden-R10Bahnen-200cm-322221.html"],["Technisches Datenblatt Polysafe Standard PUR","https://www.heinze.de/m2/83/226183/etc/88/48793488.pdf"]],
+  layers:[
+    {n:1,name:"PUR-Vergütung",tex:"clearBlue",t:.035,clear:true,
+     desc:"Polyurethan-Verstärkung der Oberfläche.",
+     func:"Hält das Aussehen länger und senkt den Reinigungsaufwand."},
+    {n:2,name:"Nutzschicht mit Sicherheitspartikeln",tex:"safety",t:.17,
+     desc:"PVC-Schicht mit eingearbeiteten harten Partikeln und Farbchips.",
+     func:"Sorgt für den erhöhten Gleitwiderstand (R10) – auch nach Abnutzung."},
+    {n:3,name:"PVC-Unterschicht",tex:"pvcBack",t:.18,
+     desc:"Kompakte Rückenschicht (vereinfachte Darstellung).",
+     func:"Gibt Stabilität und bildet die Klebefläche."}
+  ]
+},
+{
+  id:"spezialpur",group:"inku",maker:"objectflor / JOKA (im INKU-Sortiment)",short:"Spezial PUR (homogen)",proc:"kalander",
+  title:"Vinyl-Boden Spezial PUR – homogener PVC-Belag",
+  credit:"Angaben nach Jordan/INKU-Shop (Spezial PUR Fliesen)",
+  intro:"Homogener PVC-Belag: Er besteht durch die ganze Dicke aus derselben Masse mit gleicher Farbe und Musterung. Als Fliese 60,8 × 60,8 cm zum Verkleben.",
+  facts:[["Gesamtdicke","2 mm"],["Format","Fliesen 60,8 × 60,8 cm"],["Nutzungsklassen","34 · 43"],["Rutschhemmung","R9"],["Brandverhalten","Bfl-s1"],["Verlegung","verklebt"],["Weitere","phthalatfrei, antistatisch, für Feuchträume geeignet"]],
+  merke:"Homogen = die ganze Dicke ist Nutzschicht. Deshalb sind homogene Beläge besonders verschleißfest und lassen sich gut nachbehandeln.",
+  sources:[["Jordan-/INKU-Shop – Spezial PUR Fliesen","https://www.jordanshop.de/Elastische-Bodenbelaege/PVC-Belaege/PVC-Objectflor/PVC-Belag-Stabilon-SPEZIAL-PUR-Fliesen-INKU-Elastic16-14067.html?changeLanguage=1"]],
+  layers:[
+    {n:1,name:"PUR-Vergütung",tex:"clearBlue",t:.035,clear:true,
+     desc:"Transparente Polyurethan-Vergütung.",
+     func:"Schützt die Oberfläche und erleichtert die Reinigung."},
+    {n:2,name:"Homogene PVC-Schicht (durchgehend)",tex:"homChips",t:.26,
+     desc:"Eine einzige Schicht gleicher Zusammensetzung – Farbe und Chipmuster gehen durch die ganze Dicke.",
+     func:"Ist zugleich Nutz- und Trägerschicht: sehr verschleißfest."}
+  ]
+}
+];
+
+
+/* =========================================================
+   TEXTUREN (prozedural, auf Canvas gezeichnet)
+   ========================================================= */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const texCache={}, swatchCache={};
+function hashStr(s){let h=7;for(const c of s)h=h*31+c.charCodeAt(0)|0;return h}
+function canvasTex(key,w,h,draw){
+  if(texCache[key]) return texCache[key];
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const g=c.getContext('2d');draw(g,w,h,rng(hashStr(key)));
+  swatchCache[key]=c.toDataURL();
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;texCache[key]=t;return t;
+}
+function noise(g,w,h,r,amt){const d=g.getImageData(0,0,w,h);for(let i=0;i<d.data.length;i+=4){const n=(r()-.5)*amt;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n}g.putImageData(d,0,0)}
+function grainLines(g,w,h,r,n,cols,ampMax){
+  for(let i=0;i<n;i++){
+    const y0=r()*h, amp=1+r()*ampMax, f=.002+r()*.01, ph=r()*6;
+    g.strokeStyle=cols[(r()*cols.length)|0];g.globalAlpha=.08+r()*.3;g.lineWidth=.5+r()*2;
+    g.beginPath();for(let x=0;x<=w;x+=8){const y=y0+Math.sin(x*f+ph)*amp+Math.sin(x*f*3.1)*amp*.3;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();
+  }
+  g.globalAlpha=1;
+}
+function wood(base,dark,light,opts={}){return (g,w,h,r)=>{
+  g.fillStyle=base;g.fillRect(0,0,w,h);
+  for(let i=0;i<10;i++){g.fillStyle=(r()<.5?dark:light);g.globalAlpha=.08+r()*.1;const y=r()*h;g.fillRect(0,y,w,8+r()*30)}
+  g.globalAlpha=1;
+  grainLines(g,w,h,r,170,[dark,dark,light],5);
+  if(opts.pores){for(let i=0;i<900;i++){g.fillStyle=dark;g.globalAlpha=.25+r()*.3;g.fillRect(r()*w,r()*h,3+r()*9,1)}g.globalAlpha=1}
+  if(opts.rays){for(let i=0;i<60;i++){g.fillStyle=light;g.globalAlpha=.25;g.beginPath();g.ellipse(r()*w,r()*h,6+r()*14,1.5,0,0,7);g.fill()}g.globalAlpha=1}
+  const knots=opts.knots??2;
+  for(let k=0;k<knots;k++){const cx=r()*w,cy=r()*h;g.globalAlpha=.35;g.strokeStyle=dark;for(let j=1;j<6;j++){g.lineWidth=1;g.beginPath();g.ellipse(cx,cy,j*6,j*2.2,0,0,7);g.stroke()}}
+  g.globalAlpha=1;noise(g,w,h,r,14);
+}}
+function lamellae(base,dark,stripW,vertRings){return (g,w,h,r)=>{
+  // quer liegende Lamellen: Streifen entlang der Länge (u)
+  let x=0;
+  while(x<w){const sw=stripW*(.7+r()*.6);const l=(r()-.5)*22;
+    g.fillStyle=base;g.fillRect(x,0,sw,h);
+    g.fillStyle=l>0?'rgba(255,255,255,'+(l/80)+')':'rgba(0,0,0,'+(-l/80)+')';g.fillRect(x,0,sw,h);
+    g.strokeStyle=dark;g.lineWidth=1;
+    const lines=vertRings?10:4;
+    for(let i=0;i<lines;i++){g.globalAlpha=.15+r()*.25;const xx=x+r()*sw;g.beginPath();g.moveTo(xx,0);
+      for(let y=0;y<=h;y+=16)g.lineTo(xx+Math.sin(y*.02+i)*(vertRings?1:4),y);g.stroke()}
+    g.globalAlpha=.6;g.fillStyle=dark;g.fillRect(x+sw-1.5,0,1.5,h);g.globalAlpha=1;
+    x+=sw;}
+  noise(g,w,h,r,12);
+}}
+function solid(col,amt=10){return (g,w,h,r)=>{g.fillStyle=col;g.fillRect(0,0,w,h);noise(g,w,h,r,amt)}}
+function clearTex(fill,lineCol,mode){return (g,w,h,r)=>{
+  g.fillStyle=fill;g.fillRect(0,0,w,h);
+  if(mode==='grain'){for(let i=0;i<140;i++){const y0=r()*h,a=1+r()*4,f=.003+r()*.008;g.strokeStyle=lineCol.replace('A',(.15+r()*.35).toFixed(2));g.lineWidth=.6+r()*1.4;g.beginPath();for(let x=0;x<=w;x+=10){const y=y0+Math.sin(x*f)*a;x?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()}}
+  else if(mode==='streak'){for(let i=0;i<20;i++){g.fillStyle=lineCol.replace('A',(.15+r()*.2).toFixed(2));g.fillRect(r()*w,0,2+r()*40,h)}}
+  else{for(let i=0;i<60;i++){g.strokeStyle=lineCol.replace('A',(.2+r()*.4).toFixed(2));g.lineWidth=1;g.beginPath();const y=r()*h;g.moveTo(0,y);g.lineTo(w,y+(r()-.5)*20);g.stroke()}}
+}}
+const TEX={
+  woodMid:wood('#a8774b','#6e4626','#c99a6c'),
+  woodOrange:wood('#c0703a','#7d3f1a','#e0965c'),
+  woodGrey:wood('#8b8780','#5a5650','#b7b2aa'),
+  woodLight:wood('#cdbfae','#9c8b77','#e6dccf'),
+  woodRustic:(g,w,h,r)=>{wood('#d9cbbb','#8a6a55','#efe6dc')(g,w,h,r);g.globalAlpha=.25;for(let i=0;i<40;i++){g.fillStyle=r()<.5?'#b86b4a':'#7a5a48';g.fillRect(r()*w,r()*h,20+r()*120,2+r()*6)}g.globalAlpha=1},
+  oak:wood('#b98b5c','#7a532f','#dcb68c',{pores:true,rays:true,knots:1}),
+  spruce:wood('#e4d0a3','#b99a62','#f3e6c6',{knots:1}),
+  pineLam:lamellae('#d8b47a','#9b7540',46,false),
+  standing:lamellae('#d3b07c','#8c6a3c',34,true),
+  clear:clearTex('rgba(235,245,250,0.35)','rgba(255,255,255,A)','line'),
+  clearBlue:clearTex('rgba(215,232,250,0.35)','rgba(255,255,255,A)','streak'),
+  clearGrain:clearTex('rgba(245,245,245,0.45)','rgba(120,120,120,A)','grain'),
+  clearWarm:clearTex('rgba(255,246,228,0.35)','rgba(255,255,255,A)','streak'),
+  oilFinish:clearTex('rgba(240,214,160,0.3)','rgba(200,160,90,A)','line'),
+  fleece:(g,w,h,r)=>{g.fillStyle='#eeeeea';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.strokeStyle='rgba(150,150,145,'+(.15+r()*.3)+')';g.lineWidth=.6;g.beginPath();const x=r()*w,y=r()*h,a=r()*6.3,l=10+r()*40;g.moveTo(x,y);g.quadraticCurveTo(x+Math.cos(a+.5)*l*.5,y+Math.sin(a+.5)*l*.5,x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke()}},
+  foam:(g,w,h,r)=>{g.fillStyle='#e4e3e0';g.fillRect(0,0,w,h);for(let i=0;i<1600;i++){const rr=1+r()*4;g.fillStyle='rgba(255,255,255,.7)';g.strokeStyle='rgba(160,160,155,.5)';g.beginPath();g.arc(r()*w,r()*h,rr,0,7);g.fill();g.stroke()}},
+  darkGrey:solid('#5d5a56',14),
+  darkerGrey:solid('#45423f',12),
+  nearBlack:solid('#2f3134',10),
+  spc:(g,w,h,r)=>{g.fillStyle='#9a9a98';g.fillRect(0,0,w,h);for(let i=0;i<3000;i++){g.fillStyle=r()<.5?'rgba(255,255,255,.35)':'rgba(60,60,60,.3)';g.fillRect(r()*w,r()*h,1+r()*2,1+r()*2)}},
+  matBrown:solid('#7e5f45',22),
+  matTan:solid('#a27d58',22),
+  cream:solid('#e8d2ae',10),
+  ecuran:solid('#f0cf98',10),
+  textile:(g,w,h,r)=>{g.fillStyle='#e7e0d3';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=r()<.5?'rgba(150,135,110,.35)':'rgba(255,255,255,.6)';g.beginPath();g.arc(r()*w,r()*h,.6+r()*1.8,0,7);g.fill()}},
+  green:solid('#5f8c62',18),
+  hdf:(g,w,h,r)=>{g.fillStyle='#7a5235';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=r()<.5?'rgba(40,20,10,.25)':'rgba(200,150,110,.2)';g.fillRect(r()*w,r()*h,1+r()*6,1)}},
+  hdfLight:(g,w,h,r)=>{g.fillStyle='#a07a55';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=r()<.5?'rgba(60,35,15,.22)':'rgba(220,180,140,.22)';g.fillRect(r()*w,r()*h,1+r()*6,1)}},
+  lino:(g,w,h,r)=>{g.fillStyle='#9bb86e';g.fillRect(0,0,w,h);const cols=['#7fa257','#b6cf8d','#8daf62','#c9dca4','#6f9249'];for(let i=0;i<700;i++){g.fillStyle=cols[(r()*cols.length)|0];g.globalAlpha=.35+r()*.4;g.beginPath();g.ellipse(r()*w,r()*h,4+r()*26,1+r()*4,(r()-.5)*.6,0,7);g.fill()}g.globalAlpha=1},
+  cork:(g,w,h,r)=>{g.fillStyle='#c48d58';g.fillRect(0,0,w,h);for(let i=0;i<2600;i++){g.fillStyle=r()<.55?'rgba(110,65,30,.45)':'rgba(235,190,135,.5)';g.beginPath();g.arc(r()*w,r()*h,.6+r()*2.4,0,7);g.fill()}}
+};
+Object.assign(TEX,{
+  linoGrey:(g,w,h,r)=>{g.fillStyle='#b9b3a6';g.fillRect(0,0,w,h);const cols=['#9d968a','#d4cfc4','#a8a194','#e2ddd2','#8c8579'];for(let i=0;i<800;i++){g.fillStyle=cols[(r()*cols.length)|0];g.globalAlpha=.35+r()*.4;g.beginPath();g.ellipse(r()*w,r()*h,4+r()*30,1+r()*4,(r()-.5)*.5,0,7);g.fill()}g.globalAlpha=1},
+  jute:(g,w,h,r)=>{g.fillStyle='#b8925a';g.fillRect(0,0,w,h);for(let x=0;x<w;x+=8){g.fillStyle='rgba(90,60,25,'+(.25+r()*.2)+')';g.fillRect(x,0,3,h)}for(let y=0;y<h;y+=8){g.fillStyle='rgba(230,200,140,'+(.2+r()*.2)+')';g.fillRect(0,y,w,3)}noise(g,w,h,r,18)},
+  safety:(g,w,h,r)=>{g.fillStyle='#8a9098';g.fillRect(0,0,w,h);for(let i=0;i<1400;i++){g.fillStyle=['#6f757d','#a4aab2','#c9ced4'][i%3];g.globalAlpha=.6;g.fillRect(r()*w,r()*h,3+r()*7,2+r()*5)}g.globalAlpha=1;for(let i=0;i<1600;i++){g.fillStyle=r()<.5?'#111':'#fff';g.fillRect(r()*w,r()*h,1.5,1.5)}},
+  pvcBack:solid('#6b6862',12),
+  stoneDecor:(g,w,h,r)=>{g.fillStyle='#a9a59d';g.fillRect(0,0,w,h);for(let i=0;i<500;i++){g.fillStyle=['#8f8b83','#bdb9b1','#9c978e','#c8c4bb'][i%4];g.globalAlpha=.25+r()*.3;g.beginPath();g.ellipse(r()*w,r()*h,10+r()*60,5+r()*25,r()*3,0,7);g.fill()}g.globalAlpha=1;g.strokeStyle='rgba(80,78,74,.6)';g.lineWidth=3;g.beginPath();g.moveTo(w/2,0);g.lineTo(w/2,h);g.stroke();noise(g,w,h,r,12)},
+  esd:(g,w,h,r)=>{g.fillStyle='#cfd6dc';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.fillStyle=['#c2cad1','#dde3e8','#b8c1c9'][i%3];const x=r()*w,y=r()*h,s=8+r()*22;g.beginPath();g.moveTo(x,y);g.lineTo(x+s,y+r()*6);g.lineTo(x+s*.7,y+s*.8);g.lineTo(x-r()*5,y+s*.6);g.closePath();g.fill();g.strokeStyle='rgba(40,45,50,.7)';g.lineWidth=1.2;g.stroke()}},
+  homChips:(g,w,h,r)=>{g.fillStyle='#b7bfc4';g.fillRect(0,0,w,h);for(let i=0;i<1500;i++){g.fillStyle=['#9aa4ab','#d3d9dd','#7f8a91','#e9ecee','#a8b2b8'][i%5];g.globalAlpha=.8;g.fillRect(r()*w,r()*h,3+r()*9,2+r()*6)}g.globalAlpha=1},
+  copper:(g,w,h,r)=>{g.fillStyle='#b8733a';g.fillRect(0,0,w,h);for(let i=0;i<60;i++){g.fillStyle='rgba(255,210,160,.25)';g.fillRect(0,r()*h,w,1+r()*3)}},
+  rubber:solid('#4c565e',14),
+  screed:(g,w,h,r)=>{g.fillStyle='#a7a49d';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=['#8f8c85','#bcb9b2','#9a978f'][i%3];g.globalAlpha=.5;g.beginPath();g.arc(r()*w,r()*h,.8+r()*2.5,0,7);g.fill()}g.globalAlpha=1;noise(g,w,h,r,16)},
+  primer:(g,w,h,r)=>{g.fillStyle='#d9e6ef';g.fillRect(0,0,w,h);for(let i=0;i<40;i++){g.fillStyle='rgba(150,180,205,.25)';g.fillRect(r()*w,0,10+r()*60,h)}},
+  spachtel:solid('#d6d3cd',8),
+  adhesive:(g,w,h,r)=>{g.fillStyle='#e9e1cc';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=10){g.fillStyle='rgba(160,145,110,.55)';g.fillRect(0,y,w,3)}},
+  condAdh:(g,w,h,r)=>{g.fillStyle='#2b2b2b';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=10){g.fillStyle='rgba(120,120,120,.5)';g.fillRect(0,y,w,3)}},
+  rubberBack:(g,w,h,r)=>{g.fillStyle='#5a646c';g.fillRect(0,0,w,h);for(let i=0;i<400;i++){g.strokeStyle='rgba(200,200,200,.25)';g.beginPath();const x=r()*w,y=r()*h;g.moveTo(x,y);g.lineTo(x+20+r()*40,y+(r()-.5)*4);g.stroke()}},
+  rubberChips:(g,w,h,r)=>{g.fillStyle='#4c565e';g.fillRect(0,0,w,h);for(let i=0;i<1300;i++){g.fillStyle=['#e8e8e8','#c0392b','#f1c40f','#9aa4ab','#2c3e50'][i%5];g.globalAlpha=.85;g.fillRect(r()*w,r()*h,2+r()*5,2+r()*4)}g.globalAlpha=1}
+});
+function getTex(key){return canvasTex(key,1024,320,TEX[key])}
+
+/* =========================================================
+   3D-SZENE
+   ========================================================= */
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,.1,200);
+camera.position.set(6,5,8);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.08;controls.maxPolarAngle=Math.PI*.495;controls.minDistance=2;controls.maxDistance=45;
+
+scene.add(new THREE.HemisphereLight(0xffffff,0xb8ab98,.75));
+const sun=new THREE.DirectionalLight(0xffffff,.85);
+sun.position.set(5,12,7);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:60});sun.shadow.bias=-.0005;
+scene.add(sun);
+const fill=new THREE.DirectionalLight(0xfff1e0,.35);fill.position.set(-6,4,-4);scene.add(fill);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(80,80),new THREE.ShadowMaterial({opacity:.18}));
+ground.rotation.x=-Math.PI/2;ground.position.y=-.001;ground.receiveShadow=true;scene.add(ground);
+// Ablagefläche zum Zusammenbauen
+const padMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.35});
+const pad=new THREE.Mesh(new THREE.PlaneGeometry(5.6,2.6),padMat);
+pad.rotation.x=-Math.PI/2;pad.position.y=.002;scene.add(pad);
+
+const L=4.2, W=1.5, LM=4.7, WM=2.0;
+const root=new THREE.Group();scene.add(root);
+let neighbor=null;
+
+/* Profilgeometrie: Querschnitt (Breite u, Höhe v) wird entlang der Länge extrudiert.
+   'nf'    = Nut und Feder / Nut und Kamm
+   'click' = Klickprofil mit Rastnase (Feder mit Haken, Nut mit verlängerter Unterlippe) */
+function profileGeometry(len,wid,t,type){
+  const tg=Math.min(.17,wid*.11), hw=wid/2;
+  const s=new THREE.Shape();
+  if(type==='click'){
+    s.moveTo(-hw-tg*.55,0);
+    s.lineTo(hw-tg*.55,0);              // Aussparung für die Unterlippe der Nachbardiele
+    s.lineTo(hw-tg*.55,t*.36);
+    s.lineTo(hw+tg*.95,t*.36);
+    s.lineTo(hw+tg*.95,t*.22);          // Rastnase nach unten
+    s.lineTo(hw+tg*1.35,t*.22);
+    s.lineTo(hw+tg*1.35,t*.56);
+    s.lineTo(hw+tg*.35,t*.64);
+    s.lineTo(hw,t*.64);
+    s.lineTo(hw,t);
+    s.lineTo(-hw,t);
+    s.lineTo(-hw,t*.68);
+    s.lineTo(-hw+tg*1.4,t*.68);         // Nut
+    s.lineTo(-hw+tg*1.4,t*.18);
+    s.lineTo(-hw+tg*.95,t*.18);
+    s.lineTo(-hw+tg*.95,t*.34);         // Rastkante
+    s.lineTo(-hw-tg*.55,t*.34);         // verlängerte Unterlippe
+    s.lineTo(-hw-tg*.55,0);
+  }else{
+    s.moveTo(-hw,0);s.lineTo(hw,0);s.lineTo(hw,t*.35);s.lineTo(hw+tg,t*.38);s.lineTo(hw+tg,t*.62);s.lineTo(hw,t*.65);s.lineTo(hw,t);
+    s.lineTo(-hw,t);s.lineTo(-hw,t*.7);s.lineTo(-hw+tg,t*.66);s.lineTo(-hw+tg,t*.34);s.lineTo(-hw,t*.3);s.lineTo(-hw,0);
+  }
+  const geo=new THREE.ExtrudeGeometry(s,{depth:len,bevelEnabled:false});
+  geo.rotateY(-Math.PI/2);geo.translate(len/2,-t/2,0);
+  const uv=geo.attributes.uv;for(let i=0;i<uv.count;i++){uv.setXY(i,uv.getX(i)/4,uv.getY(i)/1.4)}
+  return geo;
+}
+
+/* =========================================================
+   ZUSTAND
+   ========================================================= */
+let P=0, mode='build', level='mittel', meshes=[], placed=0, errors=0, tips=0, explode=.8, showLabels=true, trueScale=false;
+let selected=null, hover=null, buildOrder=[];
+let nameQueue=[], nameIdx=0, nameErrors=0, nameSolved=new Set(), answers=[];
+let camGoal=null, tStart=null, tEnd=null, drag=null, view='schraeg';
+
+const $=s=>document.querySelector(s);
+const pane=$('#pane'), labelsEl=$('#labels'), tooltip=$('#tooltip'), banner=$('#banner');
+const isPark=()=>PRODUCTS[P].group==='parkett';
+function bottomUp(){return PRODUCTS[P].layers.slice().reverse()}
+function shuffle(a,seed){const r=rng(seed||(Date.now()&0xffffff));for(let i=a.length-1;i>0;i--){const j=(r()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+const canTrue=()=>PRODUCTS[P].layers.every(l=>l.mm!=null);
+const hasProfile=()=>PRODUCTS[P].layers.some(l=>l.profile);
+function fmtMM(v){return v<1?String(v).replace('.',','):v.toLocaleString('de-DE',{maximumFractionDigits:1})}
+
+function clearRoot(){meshes.forEach(m=>{m.geometry.dispose();m.material.dispose();root.remove(m)});meshes=[];removeNeighbor()}
+function layerT(ly){return (trueScale&&ly.mm!=null)?Math.max(ly.mm*.05,.006):ly.t}
+
+function buildProduct(){
+  clearRoot();
+  let y=0;
+  bottomUp().forEach((ly,b)=>{
+    const t=layerT(ly);
+    const len=ly.separate?LM:L, wid=ly.separate?WM:W;
+    const geo=ly.profile?profileGeometry(len,wid,t,ly.profile):new THREE.BoxGeometry(len,t,wid);
+    const mat=new THREE.MeshStandardMaterial({map:getTex(ly.tex),roughness:ly.clear?.15:.72,metalness:0,
+      transparent:!!ly.clear,opacity:ly.clear?.85:1,depthWrite:!ly.clear,side:ly.clear?THREE.DoubleSide:THREE.FrontSide});
+    let m;
+    if(ly.strips){m=new THREE.Mesh(new THREE.BoxGeometry(.3,t,wid),mat);[-1.6,1.6].forEach(x=>{const c=new THREE.Mesh(new THREE.BoxGeometry(.3,t,wid),mat);c.position.x=x;c.castShadow=true;m.add(c)});geo.dispose()}
+    else m=new THREE.Mesh(geo,mat);
+    if(ly.noppen){const ng=new THREE.CylinderGeometry(.09,.09,.08,20);for(let ix=0;ix<14;ix++)for(let iz=0;iz<5;iz++){const c=new THREE.Mesh(ng,mat);c.position.set(-len/2+.15+ix*(len-.3)/13,t/2+.04,-wid/2+.15+iz*(wid-.3)/4);c.castShadow=true;m.add(c)}}
+    m.castShadow=!ly.clear;m.receiveShadow=true;
+    m.userData={b,ly,t,baseY:y+t/2,cur:new THREE.Vector3(),target:new THREE.Vector3(),rot:0,targetRot:0,shake:0,flash:null};
+    y+=t;root.add(m);meshes.push(m);
+  });
+}
+function stackPos(m,ex){const b=m.userData.b,n=meshes.length;return new THREE.Vector3((b-(n-1)/2)*ex*.34,m.userData.baseY+b*ex*.42,0)}
+function scatterPos(k,n){const side=k%2===0?-1:1,row=Math.floor(k/2),rows=Math.ceil(n/2);return new THREE.Vector3(side*5.9,0,(row-(rows-1)/2)*2.15)}
+function setTargets(){
+  meshes.forEach(m=>{
+    const u=m.userData;if(u.dragging)return;
+    if(mode==='build'){
+      if(u.placed){u.target.copy(stackPos(m,0));u.targetRot=0}
+      else{const p=scatterPos(buildOrder.indexOf(u.b),meshes.length);p.y=u.t/2;u.target.copy(p);u.targetRot=u.scRot}
+    }else{u.target.copy(stackPos(m,mode==='name'?Math.max(explode,.8):explode));u.targetRot=0}
+  });
+}
+function snap(){meshes.forEach(m=>{m.userData.cur.copy(m.userData.target);m.userData.rot=m.userData.targetRot})}
+
+function modelBox(){const b=new THREE.Box3();meshes.forEach(m=>{const u=m.userData;const len=u.ly.separate?LM:L,wid=u.ly.separate?WM:W;
+  b.expandByPoint(new THREE.Vector3(u.target.x-len/2,u.target.y-u.t/2,-wid/2));b.expandByPoint(new THREE.Vector3(u.target.x+len/2,u.target.y+u.t/2,wid/2))});
+  if(neighbor)b.expandByPoint(new THREE.Vector3(0,0,W*1.5));return b}
+function aimCamera(v){
+  if(mode==='prod'){overview();renderViews();return}
+  if(mode==='tiles'){tilesCam();renderViews();return}
+  if(v)view=v;
+  const aspect=stage.clientWidth/Math.max(stage.clientHeight,1),k=Math.max(1,1.55/aspect);
+  if(mode==='build'){view='schraeg';const d=Math.max(14,9.4/(Math.tan(19*Math.PI/180)*aspect));
+    camGoal={pos:new THREE.Vector3(0,.69*d,.72*d),tgt:new THREE.Vector3(0,0,.3)};renderViews();return}
+  const box=modelBox(),c=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+  if(view==='stirn'){const tgt=new THREE.Vector3(box.max.x,c.y,c.z);camGoal={pos:tgt.clone().add(new THREE.Vector3(2.6+size.y*1.5,.5+size.y*.4,.9).multiplyScalar(k)),tgt}}
+  else if(view==='oben'){camGoal={pos:new THREE.Vector3(c.x+.01,c.y+9*k,c.z+.4),tgt:c.clone()}}
+  else{camGoal={pos:new THREE.Vector3(c.x+5.2*k,c.y+3.4+size.y*.4,c.z+7.2*k),tgt:new THREE.Vector3(c.x*.5,c.y,c.z)}}
+  renderViews();
+}
+
+/* ---------- Zweite Diele (Verbindung zeigen) ---------- */
+function removeNeighbor(){if(!neighbor)return;neighbor.traverse(o=>{if(o.isMesh)o.material.dispose()});scene.remove(neighbor);neighbor=null}
+function showNeighbor(){
+  removeNeighbor();
+  explode=0;setTargets();const ex=$('#ex');if(ex)ex.value=0;
+  neighbor=new THREE.Group();
+  meshes.forEach(m=>{if(m.userData.ly.separate)return;const c=new THREE.Mesh(m.geometry,m.material.clone());c.material.emissive.setRGB(0,0,0);
+    c.position.copy(stackPos(m,0));c.castShadow=m.castShadow;c.receiveShadow=true;neighbor.add(c)});
+  neighbor.userData={from:W+1.6,to:W,t:0};neighbor.position.z=W+1.6;scene.add(neighbor);
+  aimCamera('stirn');
+  showBanner(`So greifen die Profile ineinander: ${PRODUCTS[P].layers.find(l=>l.profile).profile==='click'?'<b>Klickverbindung</b> – die Rastnase hakt hinter die Kante der Unterlippe.':'<b>Nut und Feder</b> – die Feder schiebt sich passgenau in die Nut.'}`);
+}
+
+/* =========================================================
+   TIMER & BESTWERTE
+   ========================================================= */
+function startTimer(){if(tStart==null){tStart=performance.now();tEnd=null}}
+function stopTimer(){if(tStart!=null&&tEnd==null)tEnd=performance.now()}
+function elapsed(){return tStart==null?0:((tEnd??performance.now())-tStart)/1000}
+function fmtTime(s){s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+setInterval(()=>{const el=document.getElementById('timer');if(el)el.textContent=fmtTime(elapsed())},500);
+function bestKey(){return `bb3d_${PRODUCTS[P].short}_${mode}_${level}`}
+function getBest(){try{return JSON.parse(localStorage.getItem(bestKey())||'null')}catch(e){return null}}
+function saveBest(err,sec){const b=getBest();const better=!b||err<b.e||(err===b.e&&sec<b.s);
+  if(better){try{localStorage.setItem(bestKey(),JSON.stringify({e:err,s:sec}))}catch(e){}}return {better,prev:b}}
+function stars(err){const n=err===0?3:err<=2?2:1;return `<span class="stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(3-n)}</span></span>`}
+
+/* =========================================================
+   UI: Produkte, Modi, Stufen
+   ========================================================= */
+const prodNav=$('#products');
+function renderNav(){
+  prodNav.innerHTML='';let lastG=null,row=null;
+  PRODUCTS.forEach((p,i)=>{
+    if(p.group!==lastG){lastG=p.group;row=document.createElement('div');row.className='prow';prodNav.appendChild(row);
+      const g=document.createElement('span');g.className='grp';g.textContent={elastisch:'Lehrbuch-Aufbauten',skript:'Skriptum Heft 1',verlegung:'Heft 2 · Verlegung',forbo:'Forbo Flooring',inku:'INKU-Sortiment'}[p.group]||p.group;row.appendChild(g)}
+    const b=document.createElement('button');b.className='g-'+p.group+' '+(i===P?'active':'');
+    b.innerHTML=`<span class="nr">${i+1}</span>${p.short}`;b.onclick=()=>selectProduct(i);row.appendChild(b);
+  });
+}
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+
+function selectProduct(i){
+  P=i;explode=.8;if(!canTrue())trueScale=false;renderNav();
+  buildProduct();renderAbout();
+  if(mode==='prod'){if(PRODUCTS[P].proc&&PRODUCTS[P].proc!==curProc)setProc(PRODUCTS[P].proc);return}
+  if(mode==='tiles'){setMode('build');return}
+  setMode(mode);snap();
+}
+function setMode(m){
+  mode=m;selected=null;hideBanner();removeNeighbor();tStart=null;tEnd=null;playing=false;
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  const n=meshes.length;
+  if(m==='build'){
+    placed=0;errors=0;tips=0;
+    buildOrder=shuffle([...Array(n).keys()]);
+    const r=rng(n*13+P+1);
+    meshes.forEach(x=>{x.userData.placed=false;x.userData.scRot=(r()-.5)*.35});
+    renderBuild();
+  }else if(m==='explore'){renderExplore()}
+  else if(m==='tiles'){
+    document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+    resetTiles();renderViews();
+    $('#stageHint').textContent='Ziehen = drehen · Mausrad/2 Finger = zoomen · orange = Randfliesen (geschnitten)';
+    return;
+  }
+  else if(m==='prod'){
+    document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+    if(PRODUCTS[P].proc)curProc=PRODUCTS[P].proc;
+    stepIdx=0;orderState=null;buildProd();overview();renderProd();renderViews();
+    $('#stageHint').textContent='Ziehen = drehen · Mausrad/2 Finger = zoomen · Rechtsklick = verschieben';
+    return;
+  }
+  else{
+    nameQueue=shuffle([...Array(n).keys()]);nameIdx=0;nameErrors=0;nameSolved=new Set();
+    const layers=bottomUp();
+    answers=layers.map((ly,b)=>({b,name:ly.name}));
+    if(level==='schwer'){
+      const own=new Set(layers.map(l=>l.name));
+      const pool=[...new Set(PRODUCTS.filter((p,i)=>i!==P&&p.group===PRODUCTS[P].group).flatMap(p=>p.layers.map(l=>l.name)))].filter(x=>!own.has(x));
+      shuffle(pool).slice(0,3).forEach(name=>answers.push({b:-1,name}));
+    }
+    shuffle(answers);
+    renderName();
+  }
+  setTargets();aimCamera(m==='build'?'schraeg':'schraeg');
+  $('#stageHint').textContent=m==='build'?'Teile ziehen und auf der hellen Fläche ablegen – oder antippen · Ziehen auf leerer Fläche = drehen':'Ziehen = drehen · Mausrad/2 Finger = zoomen · Rechtsklick/3 Finger = verschieben';
+}
+const LEVELS={build:{leicht:'Namenskarten, Namen beim Darüberfahren im Modell, ausführliche Hinweise, Tipps.',mittel:'Namenskarten, Hinweise und Tipps – im Modell keine Namen.',schwer:'Keine Namenskarten, keine Tipps: Erkenne die Schichten nur am Aussehen und ziehe sie im Modell auf die Fläche.'},
+  name:{leicht:'Antworten mit Farbmuster.',mittel:'Nur die Namen der Schichten dieses Belags.',schwer:'Zusätzlich falsche Antworten aus anderen Belägen.'}};
+function levelHTML(){
+  return `<div class="levels">Stufe: <span class="seg">${['leicht','mittel','schwer'].map(l=>`<button data-l="${l}" class="${l===level?'on':''}">${l[0].toUpperCase()+l.slice(1)}</button>`).join('')}</span></div>
+  <div class="lvlinfo">${LEVELS[mode][level]}</div>`;
+}
+function bindLevels(){pane.querySelectorAll('.levels button').forEach(b=>b.onclick=()=>{level=b.dataset.l;setMode(mode)})}
+function swatch(ly){return `<span class="sw" style="background-image:url(${swatchCache[ly.tex]||''});background-color:#ddd"></span>`}
+function headHTML(){const p=PRODUCTS[P];return `${p.maker?`<div class="maker">${p.maker}</div>`:''}<h2>${p.title}</h2>`}
+
+/* ---------- Bauen ---------- */
+function renderBuild(){
+  const layers=bottomUp(),n=layers.length,done=placed===n;
+  let doneBox='';
+  if(done){const sec=elapsed(),res=saveBest(errors,sec);
+    doneBox=`<div class="done-box">${stars(errors)}<br><b>Geschafft!</b> Zeit ${fmtTime(sec)}, ${errors} Fehlversuch${errors===1?'':'e'}${tips?`, ${tips} Tipp${tips===1?'':'s'}`:''}.
+      ${res.better&&res.prev?' <b>Neue Bestleistung!</b>':''}${!res.better&&res.prev?` <span class="muted">Bestleistung: ${res.prev.e} Fehler, ${fmtTime(res.prev.s)}</span>`:''}
+      <div class="merke" style="background:#fff">${PRODUCTS[P].merke}</div>
+      <div class="row"><button class="btn primary" id="goExplore">Aufbau erkunden</button><button class="btn" id="goName">Schichten benennen</button></div></div>`}
+  pane.innerHTML=`${headHTML()}${levelHTML()}
+    <div class="task">Baue den Belag <b>von unten nach oben</b> auf. Ziehe die Teile im 3D-Modell auf die helle Fläche${level==='schwer'?'':' oder klicke sie in der Liste an'}.</div>
+    <div class="stats"><span>Eingebaut: <b>${placed}/${n}</b></span><span>Fehler: <b>${errors}</b></span>${level!=='schwer'?`<span>Tipps: <b>${tips}</b></span>`:''}<span>Zeit: <b id="timer">${fmtTime(elapsed())}</b></span></div>
+    ${level==='schwer'?'':`<h3>Bauteile</h3><div class="cards" id="buildCards">${buildOrder.map(b=>{const ly=layers[b],pl=meshes[b].userData.placed;
+      return `<button class="card ${pl?'done':''}" data-b="${b}" ${pl?'disabled':'draggable="true"'}>${swatch(ly)}<span>${ly.name}</span>${pl?'<span class="tag">✓ eingebaut</span>':(ly.separate?'<span class="tag">separat</span>':'')}</button>`}).join('')}</div>`}
+    <h3>Dein Aufbau (unten → oben)</h3>
+    <div class="stack">${layers.map((ly,b)=>`<div class="slot ${b<placed?'filled':''}">${b<placed?swatch(ly)+ly.name:(b===placed?'⬚ nächste Schicht …':'')}</div>`).join('')}</div>
+    ${doneBox}
+    <div class="row">${!done&&level!=='schwer'?'<button class="btn" id="tipBtn">💡 Tipp</button>':''}<button class="btn" id="resetBtn">↺ Neu starten</button></div>`;
+  bindLevels();
+  pane.querySelectorAll('#buildCards .card:not(.done)').forEach(c=>{
+    const b=+c.dataset.b;
+    c.onclick=()=>{startTimer();tryPlace(b)};
+    c.onmouseenter=()=>{hover=meshes[b]};c.onmouseleave=()=>{hover=null};
+    c.ondragstart=e=>{e.dataTransfer.setData('text/plain',String(b));e.dataTransfer.effectAllowed='move';hover=meshes[b]};
+    c.ondragend=()=>{hover=null;stage.classList.remove('dragover')};
+  });
+  const tb=$('#tipBtn');if(tb)tb.onclick=()=>{startTimer();tips++;const m=meshes[placed];m.userData.flash={col:[.9,.7,.1],t:1.8};
+    showBanner(`Tipp: Gesucht ist die Schicht, die <b>${placed===0?'ganz unten':'direkt auf „'+layers[placed-1].name+'“'}</b> liegt. Sie blinkt gelb.`);renderBuild()};
+  $('#resetBtn').onclick=()=>setMode('build');
+  const ge=$('#goExplore');if(ge)ge.onclick=()=>setMode('explore');
+  const gn=$('#goName');if(gn)gn.onclick=()=>setMode('name');
+}
+function tryPlace(b){
+  const m=meshes[b],layers=bottomUp();
+  if(m.userData.placed||mode!=='build')return;
+  startTimer();
+  if(b===placed){
+    m.userData.placed=true;placed++;m.userData.flash={col:[.1,.6,.25],t:.8};
+    if(placed===layers.length){stopTimer();showBanner(`<b>Richtig – fertig!</b> Alle ${layers.length} Schichten sitzen.`,'ok')}
+    else showBanner(`<b>Richtig:</b> ${m.userData.ly.name}. <span class="muted">${level==='schwer'?'':m.userData.ly.func}</span>`,'ok');
+  }else{
+    errors++;m.userData.shake=.5;m.userData.flash={col:[.8,.1,.05],t:.7};
+    const diff=b-placed;
+    let msg;
+    if(level==='schwer')msg='<b>Falsch.</b> Diese Schicht kommt noch nicht dran.';
+    else if(level==='leicht')msg=`<b>Noch nicht.</b> „${m.userData.ly.name}“ liegt <b>${diff===1?'eine Schicht':diff+' Schichten'}</b> weiter oben. ${placed===0?'Welche Schicht liegt ganz unten?':`Was liegt direkt auf „${layers[placed-1].name}“?`}`;
+    else msg=`<b>Noch nicht.</b> „${m.userData.ly.name}“ liegt weiter oben. ${placed===0?'Welche Schicht liegt ganz unten?':`Was liegt direkt auf „${layers[placed-1].name}“?`}`;
+    showBanner(msg,'err');
+  }
+  setTargets();renderBuild();
+  if(!m.userData.placed){const c=pane.querySelector(`.card[data-b="${b}"]`);if(c)c.classList.add('wrong')}
+}
+stage.addEventListener('dragover',e=>{if(mode==='build'){e.preventDefault();stage.classList.add('dragover')}});
+stage.addEventListener('dragleave',()=>stage.classList.remove('dragover'));
+stage.addEventListener('drop',e=>{e.preventDefault();stage.classList.remove('dragover');const b=parseInt(e.dataTransfer.getData('text/plain'));if(!isNaN(b))tryPlace(b)});
+
+/* ---------- Erkunden ---------- */
+function renderExplore(){
+  const p=PRODUCTS[P];
+  pane.innerHTML=`${headHTML()}
+    <p class="muted" style="margin:4px 0 0">Klicke eine Schicht an, um mehr zu erfahren. Nummer 1 ist die oberste Schicht.</p>
+    <label class="ctl">Explosionsansicht <input type="range" id="ex" min="0" max="1.6" step="0.01" value="${explode}"></label>
+    <label class="ctl"><input type="checkbox" id="lb" ${showLabels?'checked':''}> Nummern anzeigen</label>
+    ${canTrue()?`<label class="ctl"><input type="checkbox" id="ts" ${trueScale?'checked':''}> Echte Proportionen (Dicken in mm)</label>`:''}
+    <div class="row" style="margin-top:4px">${hasProfile()?`<button class="btn" id="nb">🔗 Zwei Dielen verbinden</button>`:''}${PRODUCTS[P].proc?`<button class="btn" id="goProd">🏭 Herstellung ansehen</button>`:''}</div>
+    <div class="cards" id="exCards" style="margin-top:12px">${p.layers.map((ly,i)=>`<button class="card" data-b="${p.layers.length-1-i}"><span class="n">${ly.n}</span>${swatch(ly)}<span>${ly.name}</span>${ly.mm!=null?`<span class="tag">${ly.mmEst?'≈ ':''}${fmtMM(ly.mm)} mm</span>`:(ly.separate?'<span class="tag">separat</span>':'')}</button>`).join('')}</div>
+    <div id="infoBox"></div>`;
+  $('#ex').oninput=e=>{explode=+e.target.value;removeNeighbor();setTargets()};
+  $('#ex').onchange=()=>aimCamera();
+  $('#lb').onchange=e=>{showLabels=e.target.checked};
+  const ts=$('#ts');if(ts)ts.onchange=e=>{trueScale=e.target.checked;const s=selected?selected.userData.b:null;buildProduct();setTargets();if(s!=null)selected=meshes[s];
+    showBanner(trueScale?'Jetzt maßstäblich: Die Oberflächenbehandlung ist nur Bruchteile eines Millimeters dick – die Nutzschicht dagegen mehrere Millimeter.':'Schichtdicken wieder zur Verdeutlichung vergrößert.')};
+  const nb=$('#nb');if(nb)nb.onclick=showNeighbor;
+  const gp=$('#goProd');if(gp)gp.onclick=()=>setMode('prod');
+  pane.querySelectorAll('#exCards .card').forEach(c=>{const b=+c.dataset.b;c.onclick=()=>selectLayer(b);c.onmouseenter=()=>{hover=meshes[b]};c.onmouseleave=()=>{hover=null}});
+  if(selected)selectLayer(selected.userData.b);
+}
+function selectLayer(b){
+  selected=meshes[b];const ly=selected.userData.ly;
+  pane.querySelectorAll('#exCards .card').forEach(c=>c.classList.toggle('sel',+c.dataset.b===b));
+  const box=$('#infoBox');if(!box)return;
+  box.innerHTML=`<div class="info"><h4><span class="badge">${ly.n}</span>${ly.name}</h4>
+    ${ly.mm!=null?`<p class="muted" style="margin:0">Dicke: ca. ${fmtMM(ly.mm)} mm ${ly.mmEst?'(Richtwert, nicht im Datenblatt angegeben)':'(Herstellerangabe)'}</p>`:''}
+    <span class="lab">Was ist das?</span><p>${ly.desc}</p>
+    <span class="lab">Aufgabe der Schicht</span><p>${ly.func}</p>
+    ${ly.separate?'<p class="muted">Diese Schicht gehört nicht fest zum Belag, sondern wird separat gekauft und vorher ausgelegt.</p>':''}
+    ${ly.profile?`<p class="muted">Profil: ${ly.profile==='click'?'Klickverbindung mit Rastnase':'Nut und Feder / Nut und Kamm'} – „Stirnseite“ oben rechts zeigt den Querschnitt.</p>`:''}</div>`;
+  box.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+/* ---------- Benennen ---------- */
+function renderName(){
+  const layers=bottomUp(),n=layers.length,done=nameIdx>=n;
+  let doneBox='';
+  if(done){const sec=elapsed(),res=saveBest(nameErrors,sec);
+    doneBox=`<div class="done-box">${stars(nameErrors)}<br><b>Alle Schichten benannt!</b> Zeit ${fmtTime(sec)}, ${nameErrors} Fehlversuch${nameErrors===1?'':'e'}.
+      ${res.better&&res.prev?' <b>Neue Bestleistung!</b>':''}${!res.better&&res.prev?` <span class="muted">Bestleistung: ${res.prev.e} Fehler, ${fmtTime(res.prev.s)}</span>`:''}
+      <div class="merke" style="background:#fff">${PRODUCTS[P].merke}</div>
+      <div class="row"><button class="btn primary" id="again">Nochmal</button><button class="btn" id="next">Nächster Belag →</button></div></div>`}
+  pane.innerHTML=`${headHTML()}${levelHTML()}
+    <div class="task">Welche Schicht ist <b>markiert</b> (orangefarbenes Fragezeichen)? Wähle den richtigen Namen.</div>
+    <div class="stats" id="nstats"><span>Richtig: <b>${nameSolved.size}/${n}</b></span><span>Fehler: <b>${nameErrors}</b></span><span>Zeit: <b id="timer">${fmtTime(elapsed())}</b></span></div>
+    ${done?doneBox:`<h3>Antworten</h3><div class="answers">${answers.map((a,i)=>{const ok=a.b>=0&&nameSolved.has(a.b);const ly=a.b>=0?layers[a.b]:null;
+      return `<button class="card ${ok?'done':''}" data-i="${i}" ${ok?'disabled':''}>${ok?`<span class="n">${ly.n}</span>`:''}${level==='leicht'&&ly?swatch(ly):''}<span>${a.name}</span></button>`}).join('')}</div>`}`;
+  bindLevels();
+  pane.querySelectorAll('.answers .card').forEach(c=>c.onclick=()=>answer(answers[+c.dataset.i],c));
+  const a=$('#again');if(a)a.onclick=()=>setMode('name');
+  const nx=$('#next');if(nx)nx.onclick=()=>{selectProduct((P+1)%PRODUCTS.length)};
+}
+function answer(a,el){
+  startTimer();
+  const cur=nameQueue[nameIdx],m=meshes[cur];
+  if(a.b===cur){nameSolved.add(cur);nameIdx++;m.userData.flash={col:[.1,.6,.25],t:.8};
+    if(nameIdx>=meshes.length)stopTimer();
+    showBanner(`<b>Richtig:</b> ${m.userData.ly.name}`,'ok');renderName();}
+  else{nameErrors++;m.userData.shake=.4;el.classList.remove('wrong');void el.offsetWidth;el.classList.add('wrong');
+    showBanner(a.b<0?'<b>Falsch.</b> Diese Schicht gibt es in diesem Belag gar nicht.':'<b>Leider falsch.</b> Achte auf Lage, Farbe und Dicke der markierten Schicht.','err');
+    $('#nstats').innerHTML=`<span>Richtig: <b>${nameSolved.size}/${meshes.length}</b></span><span>Fehler: <b>${nameErrors}</b></span><span>Zeit: <b id="timer">${fmtTime(elapsed())}</b></span>`;}
+}
+
+/* ---------- Ansichts-Buttons ---------- */
+function renderViews(){
+  const v=$('#views');
+  if(mode==='build'||mode==='prod'||mode==='tiles'){v.innerHTML='';return}
+  v.innerHTML=[['schraeg','Schräg'],['stirn','Stirnseite'],['oben','Draufsicht']].map(([k,t])=>`<button data-v="${k}" class="${view===k?'on':''}">${t}</button>`).join('');
+  v.querySelectorAll('button').forEach(b=>b.onclick=()=>aimCamera(b.dataset.v));
+}
+
+/* ---------- Infobereich ---------- */
+function renderAbout(){
+  const p=PRODUCTS[P];
+  $('#aboutBody').innerHTML=`<p>${p.intro}</p><dl class="facts">${p.facts.map(f=>`<dt>${f[0]}</dt><dd>${f[1]}</dd>`).join('')}</dl>
+  <p><b>Schichten von oben nach unten:</b><br>${p.layers.map(l=>`${l.n} = ${l.name}`).join('<br>')}</p>
+  ${p.sources?`<p><b>Quellen:</b><br>${p.sources.map(s=>`<a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a>`).join('<br>')}</p>`:''}
+  <p class="credit">${p.credit}. Schichtdicken im Modell zur Verdeutlichung stark vergrößert, nicht maßstäblich.${p.maker?' Als „vereinfachte Darstellung“ markierte Schichten sind im Datenblatt nicht einzeln beschrieben. Angaben ohne Gewähr, Stand der Datenblätter.':''}</p>`;
+}
+
+let bannerTimer=null;
+function showBanner(html,cls=''){banner.innerHTML=html;banner.className=cls;banner.style.display='block';clearTimeout(bannerTimer);bannerTimer=setTimeout(hideBanner,5500)}
+function hideBanner(){banner.style.display='none'}
+
+/* =========================================================
+   INTERAKTION IM 3D: Klicken, Ziehen & Ablegen
+   ========================================================= */
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+const dragPlane=new THREE.Plane(new THREE.Vector3(0,1,0),-.9), hitPt=new THREE.Vector3();
+function setRay(ev){const r=renderer.domElement.getBoundingClientRect();mouse.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);ray.setFromCamera(mouse,camera)}
+function pick(ev){if(mode==='prod'||mode==='tiles')return null;setRay(ev);const c=mode==='build'?meshes.filter(m=>!m.userData.placed):meshes;const h=ray.intersectObjects(c,false)[0];return h?h.object:null}
+const inZone=p=>Math.abs(p.x)<3.1&&Math.abs(p.z)<1.7;
+
+// Capture-Phase: läuft vor OrbitControls, damit ein gegriffenes Teil die Kamera nicht dreht
+stage.addEventListener('pointerdown',e=>{
+  if(e.target!==renderer.domElement||mode!=='build'||e.button>0)return;
+  const m=pick(e);if(!m)return;
+  controls.enabled=false;
+  drag={m,x:e.clientX,y:e.clientY,moved:false};m.userData.dragging=true;startTimer();
+},true);
+window.addEventListener('pointermove',e=>{
+  if(drag){
+    if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>5)drag.moved=true;
+    if(drag.moved){setRay(e);if(ray.ray.intersectPlane(dragPlane,hitPt)){const u=drag.m.userData;u.target.set(hitPt.x,.9,hitPt.z);u.targetRot=0;padMat.opacity=inZone(hitPt)?.75:.35}}
+    return;
+  }
+  if(e.target!==renderer.domElement||e.pointerType!=='mouse'){return}
+  const m=pick(e);hover=m;
+  renderer.domElement.style.cursor=m?(mode==='build'?'grab':'pointer'):'';
+  const showName=m&&(mode==='explore'||(mode==='build'&&level==='leicht'));
+  if(showName){const r=stage.getBoundingClientRect();tooltip.style.display='block';tooltip.textContent=(mode==='explore'?m.userData.ly.n+' – ':'')+m.userData.ly.name;tooltip.style.left=(e.clientX-r.left+14)+'px';tooltip.style.top=(e.clientY-r.top+10)+'px'}
+  else tooltip.style.display='none';
+});
+window.addEventListener('pointerup',e=>{
+  if(!drag)return;
+  const {m,moved}=drag;drag=null;controls.enabled=true;m.userData.dragging=false;padMat.opacity=.35;
+  if(!moved){tryPlace(m.userData.b);return}
+  setRay(e);const ok=ray.ray.intersectPlane(dragPlane,hitPt)&&inZone(hitPt);
+  if(ok)tryPlace(m.userData.b);else setTargets();
+});
+let downXY=null;
+renderer.domElement.addEventListener('pointerdown',e=>{downXY=[e.clientX,e.clientY]});
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!downXY||mode!=='explore')return;const d=Math.hypot(e.clientX-downXY[0],e.clientY-downXY[1]);downXY=null;if(d>6)return;
+  const m=pick(e);if(m)selectLayer(m.userData.b);
+});
+renderer.domElement.addEventListener('pointerleave',()=>{hover=null;tooltip.style.display='none'});
+controls.addEventListener('start',()=>{camGoal=null});
+
+/* =========================================================
+   LABELS & RENDER-SCHLEIFE
+   ========================================================= */
+const v3=new THREE.Vector3();
+function proj(x,y,z){v3.set(x,y,z).project(camera);return v3.z>1?null:[(v3.x*.5+.5)*stage.clientWidth,(-v3.y*.5+.5)*stage.clientHeight]}
+function updateLabels(){
+  if(mode==='prod'){labelsEl.innerHTML=prodLabels();return}
+  if(mode==='tiles'){labelsEl.innerHTML='';const R=ROOMS[T.room];const p=proj(0,.05,R.d/2+.35);const q=proj(0,.05,-R.d/2-.4);
+    if(p)labelsEl.innerHTML+=`<div class="lbl zone" style="left:${p[0]}px;top:${p[1]}px">Eingang</div>`;if(q)labelsEl.innerHTML+=`<div class="lbl zone" style="left:${q[0]}px;top:${q[1]}px">Hauptwand</div>`;return}
+  let html='';
+  if(mode==='build'&&placed===0){const p=proj(0,.01,1.55);if(p)html+=`<div class="lbl zone" style="left:${p[0]}px;top:${p[1]}px">hier aufbauen</div>`}
+  meshes.forEach(m=>{
+    const u=m.userData,ly=u.ly;let content=null,cls='';
+    if(mode==='explore'&&showLabels)content=`<span class="dot">${ly.n}</span>`;
+    if(mode==='name'){
+      if(nameIdx<meshes.length&&nameQueue[nameIdx]===u.b){content='<span class="dot">?</span>';cls='q'}
+      else if(nameSolved.has(u.b))content=`<span class="dot">${ly.n}</span><span class="txt">${ly.name}</span>`;
+    }
+    if(!content)return;
+    const len=ly.separate?LM:L;
+    const p=proj(m.position.x+len/2+.15,m.position.y,m.position.z+(ly.separate?WM:W)/2);if(!p)return;
+    html+=`<div class="lbl ${cls}" style="left:${p[0]}px;top:${p[1]}px">${content}</div>`;
+  });
+  labelsEl.innerHTML=html;
+}
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+window.addEventListener('resize',()=>{resize();aimCamera()});
+
+const clock=new THREE.Clock();let time=0;
+function loop(){
+  const dt=Math.min(clock.getDelta(),.05);time+=dt;
+  const k=1-Math.exp(-dt*7),kd=1-Math.exp(-dt*22);
+  meshes.forEach(m=>{
+    const u=m.userData;
+    u.cur.lerp(u.target,u.dragging?kd:k);u.rot+=(u.targetRot-u.rot)*k;
+    let ox=0;if(u.shake>0){u.shake-=dt;ox=Math.sin(time*55)*.09*Math.max(u.shake,0)/.5}
+    m.position.set(u.cur.x+ox,u.cur.y,u.cur.z);m.rotation.y=u.rot;
+    let r=0,g=0,b=0;
+    if(hover===m||(drag&&drag.m===m)){r=g=b=.12}
+    if(selected===m&&mode==='explore'){r=.05;g=.15;b=.35}
+    if(mode==='name'&&nameIdx<meshes.length&&nameQueue[nameIdx]===u.b){const p=(Math.sin(time*5)+1)/2;r=.45*p;g=.22*p}
+    if(u.flash){u.flash.t-=dt;if(u.flash.t<=0)u.flash=null;else{const p=Math.min(1,u.flash.t)*(.6+.4*Math.sin(time*14));r=u.flash.col[0]*p;g=u.flash.col[1]*p;b=u.flash.col[2]*p}}
+    m.material.emissive.setRGB(r,g,b);
+  });
+  if(neighbor){const nd=neighbor.userData;nd.t+=dt;if(nd.t>.6)neighbor.position.z+=(nd.to-neighbor.position.z)*k*.6}
+  pad.visible=mode==='build';root.visible=mode!=='prod'&&mode!=='tiles';prodGroup.visible=mode==='prod';tilesGroup.visible=mode==='tiles';
+  if(mode==='prod')prodTick(dt,time);
+  if(camGoal){camera.position.lerp(camGoal.pos,k*.8);controls.target.lerp(camGoal.tgt,k*.8);if(camera.position.distanceTo(camGoal.pos)<.02)camGoal=null}
+  controls.update();
+  renderer.render(scene,camera);
+  updateLabels();
+  requestAnimationFrame(loop);
+}
+
+
+/* =========================================================
+   HERSTELLUNG: Produktionslinien als 3D-Modell
+   Stationstypen: tank, kneader, mixer, calender, unwind, rewind,
+   coater, oven, printer, press, chamber, scatter, uv, cooling,
+   cutter, slicer, crusher, extruder, grinder, profiler
+   out.kind: 'bulk' (Masse/Granulat auf Förderband), 'web' (Warenbahn), 'plates' (Platten/Fliesen)
+   ========================================================= */
+const PROCS={
+ kalander:{name:"Kalanderverfahren",kap:"Heft 1, Kap. 3 – Herstellung von PVC-Belägen",color:0x8f9aa5,
+  intro:"Das Kalanderverfahren ist die gebräuchlichste Herstellungsart für homogene und heterogene PVC-Bodenbeläge.",
+  examples:["Homogene und heterogene PVC-Beläge (Bahnen und Fliesen)"],
+  merke:"Tempern ist sehr wichtig: Es baut produktionsbedingte Eigenspannungen ab – so schrumpft der Belag später nicht.",
+  steps:[
+   {k:"mixer",t:"Dosieren und Mischen",x:"Die Rohstoffe werden dosiert und gemischt.",out:{kind:"bulk",col:0xb8c2cc}},
+   {k:"kneader",t:"Plastifizieren in der Knetmaschine",x:"In einer beheizten Knetmaschine werden die Rohstoffe plastifiziert. Unter ständigem Rühren und Kneten wird die Masse auf etwa 150 °C erhitzt und dem Walzwerk zugeführt.",out:{kind:"bulk",col:0x9aa6b2}},
+   {k:"calender",t:"Kalandrieren",x:"Der Kalander besteht aus mehreren, übereinander angeordneten, beheizten Walzen. Die Spalteinstellungen zwischen den Walzen bestimmen die Dicke und Gleichmäßigkeit des späteren Bodenbelages.",out:{kind:"web",tex:"homChips"}},
+   {k:"bath",t:"Tempern",x:"Der Belag wird temperiert (Warmwasserbad, Infrarot usw.). Dabei werden produktionsbedingte Eigenspannungen abgebaut, um spätere Schrumpfungen zu vermeiden.",out:{kind:"web",tex:"homChips"}},
+   {k:"cooling",t:"Langsam abkühlen",x:"Der Belag wird langsam auf Raumtemperatur abgekühlt.",out:{kind:"web",tex:"homChips"}},
+   {k:"cutter",t:"Zuschneiden und Verpacken",x:"Nach dem Tempern und Abkühlen werden die Beläge zugeschnitten und verpackt. Kalandrierte Beläge gibt es als Fliesen oder als Bahnenware.",out:{kind:"plates",tex:"homChips"}}
+  ]},
+ press:{name:"Pressverfahren",kap:"Heft 1, Kap. 3 – Herstellung von PVC-Belägen",color:0x5f6b78,
+  intro:"Das Pressverfahren dient heute nur der Herstellung von leitfähigen Platten und Fliesen. Bahnenware kann nicht hergestellt werden. Durch hohen Druck und hohe Verdichtung entstehen sehr hochwertige, verschleißfeste PVC-Bodenbeläge.",
+  examples:["Leitfähige PVC-Platten und -Fliesen"],
+  merke:"Das mit Graphit oder Ruß gemischte PVC fließt bei langer Hitzeeinwirkung (thermoplastisch) so gut, dass sich von oben nach unten durchgehend leitfähige Zonen bilden.",
+  steps:[
+   {k:"mixer",t:"Mischen mit leitfähigen Stoffen",x:"Das PVC wird mit leitfähigen Stoffen (Graphit, Ruß) gemischt.",out:{kind:"bulk",col:0x55606a}},
+   {k:"calender",t:"Rohfelle herstellen",x:"Im Kalanderverfahren werden Rohfelle hergestellt. (Zweite Möglichkeit: granulierte Bahnenware wird in Formen gestreut und geschmolzen.)",out:{kind:"plates",tex:"esd"}},
+   {k:"press",t:"Pressen zu Blöcken",x:"Die Rohfelle werden in Formblechen mehrfach übereinandergelegt und zwischen beheizten Platten verdichtet. Es entstehen Blöcke.",out:{kind:"plates",tex:"esd",block:true}},
+   {k:"cooling",t:"Temperieren",x:"Die Blöcke werden temperiert und auf Zimmertemperatur gebracht.",out:{kind:"plates",tex:"esd",block:true}},
+   {k:"slicer",t:"Schneiden",x:"Die Blöcke werden in Scheiben geschnitten.",out:{kind:"plates",tex:"esd"}},
+   {k:"grinder",t:"Schleifen",x:"Die Platten werden geschliffen.",out:{kind:"plates",tex:"esd"}},
+   {k:"cutter",t:"Auf Größe stanzen",x:"Zum Schluss werden die Platten auf Größe gestanzt – Lieferform immer Platten bzw. Fliesen.",out:{kind:"plates",tex:"esd"}}
+  ]},
+ streich:{name:"Streichverfahren",kap:"Heft 1, Kap. 3 – Herstellung von PVC-Belägen",color:0xc99a6c,
+  intro:"Das Streichverfahren wird bei PVC-Belägen auf Trägern angewendet. Cushioned-Vinyl-Beläge (CV) werden so hergestellt. „Cushioned“ steht für Polster: Das Dessin ist nicht nur bildlich, sondern auch strukturell auf der Oberfläche nachgestellt.",
+  examples:["CV-Beläge","Heterogene PVC-Beläge auf Trägern"],
+  merke:"Druckfarben mit Inhibitor-Lösung (Schaumblocker) verhindern das Aufschäumen, z. B. in den Fugen. Exhibitor-Lösung (Schaumanreger) fördert es. So entsteht die reliefartige Struktur gezielt.",
+  steps:[
+   {k:"unwind",t:"Träger abrollen",x:"Als Trägermaterial dienen überwiegend Polyestervliese. Die Pasten für die einzelnen Streichvorgänge werden vorher luftfrei angemischt und in Mischern bereitgehalten.",out:{kind:"web",tex:"fleece"}},
+   {k:"coater",t:"Erster Aufstrich",x:"Durch einen Streichzylinder wird der erste Aufstrich auf das Trägermaterial vorgenommen. Jeder Streichvorgang braucht eine eigene Rezeptur.",out:{kind:"web",tex:"pvcBack"}},
+   {k:"oven",t:"Gelierkanal (ca. 150 °C)",x:"Im Gelierkanal wird das Trägermaterial bei ca. 150 °C eingebunden.",out:{kind:"web",tex:"pvcBack"}},
+   {k:"cooling",t:"Kühlwalze",x:"Eine Kühlwalze reduziert die Temperatur und bereitet die Ware auf den zweiten Aufstrich vor.",out:{kind:"web",tex:"pvcBack"}},
+   {k:"coater",t:"Zweiter Aufstrich: Schaumpaste",x:"Der zweite Streichvorgang erfolgt mit einer Schaumpaste mit Treibmitteln.",out:{kind:"web",tex:"foam"}},
+   {k:"oven",t:"Gelierkanal",x:"Im Gelierkanal entsteht eine geschlossene Struktur.",out:{kind:"web",tex:"foam"}},
+   {k:"printer",t:"Tiefdruck mit Inhibitor",x:"Die treibmittelhaltigen PVC-Bahnen werden im Tiefdruckverfahren bedruckt. Einigen Druckfarben (z. B. der Fugenfarbe) ist eine Inhibitor-Lösung zugegeben: Dort schäumt das Material später nicht auf.",out:{kind:"web",tex:"woodMid"}},
+   {k:"coater",t:"Nutzschicht aufstreichen",x:"Im nächsten Streichgang wird die transparente PVC-Nutzschicht aufgebracht.",out:{kind:"web",tex:"woodMid"}},
+   {k:"oven",t:"Hauptgelierkanal (180–200 °C)",x:"Im Hauptgelierkanal wird der Belag bei 180–200 °C mit der Nutzschicht aufgeschäumt und geliert. Wo kein Inhibitor ist, schäumt es auf – das Relief entsteht.",out:{kind:"web",tex:"woodMid"}},
+   {k:"rewind",t:"Aufrollen",x:"Die fertige Bahn wird abgekühlt und aufgerollt.",out:null}
+  ]},
+ lino:{name:"Linoleum",kap:"Heft 1, Kap. 4 – Die Herstellung von Linoleum",color:0x7fa257,
+  intro:"Bei der Herstellung von Linoleum wird zunächst „Linoleumzement“ hergestellt. Am Ende muss das Linoleum wochenlang in hohen Kammern reifen.",
+  examples:["Forbo Marmoleum","INKU Jokaleum","Linoleum-Paneel"],
+  merke:"Hängebuchten: Durch das Hängen in der Reifekammer laufen die Bahnen in der Breite ein. Verlegte Bahnen verhalten sich umgekehrt: Sie laufen in der Länge ein und wachsen in der Breite.",
+  steps:[
+   {k:"tank",t:"Oxydationskessel",x:"Das Leinöl wird in Oxydationskesseln bei wechselnden Temperaturen durch Sauerstoffzufuhr oxidiert: Leinöl + Sauerstoff = Linoxin. Der zähen Masse (Linoxin = Bindemittel) werden noch im Kessel Harze und Sikkative zugesetzt.",out:{kind:"bulk",col:0xc9a24a}},
+   {k:"extruder",t:"Strangpresse",x:"Der „Linoleumzement“ durchläuft eine Strangpresse, wird in Portionen geschnitten und zur weiteren Reifung gelagert.",out:{kind:"bulk",col:0x8a5a2b}},
+   {k:"kneader",t:"Mischen und Kneten",x:"Durch Mischen und Kneten mit Korkmehl, Holzmehl, Kreide und Farbstoffen entsteht die Linoleummasse.",out:{kind:"bulk",col:0x9bb86e,multi:true}},
+   {k:"calender",t:"Kalandern auf Jutegewebe",x:"Die Linoleummasse wird unter großer Hitze und hohem Druck auf ein Jutegewebe kalandert (aufgewalzt).",out:{kind:"web",tex:"lino"},feed:"jute"},
+   {k:"chamber",t:"Reifekammer (ca. 20 m hoch)",x:"Das Linoleum wird in ca. 20 m hohen Reifekammern je nach Belagsdicke ca. 2–4 Wochen hängend gelagert. Unter ständiger Zufuhr von Warmluft reift es aus. Durch das Hängen laufen die Bahnen in der Breite ein (Hängebuchten).",out:{kind:"web",tex:"lino"}},
+   {k:"uv",t:"Oberflächenfinish",x:"Nach dem Reifen wird auf den Belag ein Oberflächenfinish aufgebracht.",out:{kind:"web",tex:"lino"}},
+   {k:"rewind",t:"Aufrollen",x:"Die Bahnen werden konfektioniert und aufgerollt.",out:null}
+  ]},
+ kautschuk:{name:"Elastomer- / Gummibeläge",kap:"Heft 1, Kap. 5 – Herstellung",color:0x4f5a63,
+  intro:"Rohstoffe: Synthesekautschuk, Farbstoffe, Schwefel, Zinkoxid (Aktivator für die Vulkanisation), Ruß, Stearinsäure, Beschleuniger und Alterungsschutzmittel. Über die Rezeptur lassen sich Eigenschaften gezielt einstellen, z. B. öl- und fettbeständig, ableitfähig oder leitfähig.",
+  examples:["Ebene Elastomerbeläge (EN 1817 / EN 1816)","Profilierte Elastomerbeläge (EN 12199)"],
+  merke:"Durch die Vulkanisation wird aus der thermoplastischen Kautschukmasse ein Elastomer (Gummi).",
+  steps:[
+   {k:"kneader",t:"Kneten und Plastifizieren",x:"Verschiedene Synthesekautschuksorten werden in Knetern miteinander vermengt und plastifiziert; gleichzeitig werden die Zuschlagstoffe zugegeben.",out:{kind:"bulk",col:0x55606a,multi:true}},
+   {k:"calender",t:"Walzwerk",x:"Die Masse läuft mehrmals über Walzwerke, bis die Rezepturbestandteile gleichmäßig verteilt sind.",out:{kind:"web",tex:"rubberChips"}},
+   {k:"cooling",t:"Rohfelle homogenisieren",x:"Die entstandenen Rohfelle werden homogenisiert und der Vulkanisation zugeführt.",out:{kind:"web",tex:"rubberChips"}},
+   {k:"press",t:"Vulkanisieren",x:"Durch die Vulkanisation wird die thermoplastische Kautschukmasse zum Elastomer. Beläge mit profilierter Oberfläche (z. B. Rundnoppen) werden mit einer Vulkanisierpresse hergestellt.",out:{kind:"web",tex:"rubberChips"}},
+   {k:"grinder",t:"Rückseite schleifen",x:"Die Rückseite ebener und profilierter Elastomerbeläge ist glatt geschliffen (EN 1817, EN 12199).",out:{kind:"web",tex:"rubberChips"}},
+   {k:"cutter",t:"Bahnen und Platten",x:"Der Belag wird zu Bahnen oder Platten konfektioniert.",out:{kind:"plates",tex:"rubberChips"}}
+  ]}
+,
+ kork:{name:"Korkbeläge",kap:"Heft 1, Kap. 6 – Herstellung von Korkbelägen",color:0xb07a45,
+  intro:"Kork wird aus der Rinde der Korkeiche gewonnen und besteht aus Korkzellen mit Hohlräumen, in denen Luft eingelagert ist. Die Korkeiche wächst in Portugal, Südspanien und Teilen Nordafrikas.",
+  examples:["Korkfliesen mit PVC-Nutzschicht (EN 655)","Presskorkplatten (EN 12104)","Kork-Fertigfußböden (EN ISO 20326)"],
+  merke:"Die 6–8 Wochen Ruhephase nach dem Schälen sorgen für die spätere Maßgenauigkeit des Belags. Wichtiges Qualitätsmerkmal ist die Rohdichte (ca. 450–550 kg/m³).",
+  steps:[
+   {k:"bark",t:"Rinde schälen",x:"Die Rinde der Korkeiche wird entfernt, ohne dass dabei Schäden am Baum entstehen – erstmals im 25. Lebensjahr von Hand, danach alle 9–11 Jahre, rund 200 Jahre lang.",out:{kind:"bulk",col:0x8b5a2b}},
+   {k:"stack",t:"Lagern, trocknen, reifen",x:"Der geschälte Kork wird einige Monate gelagert, um zu trocknen und zu reifen.",out:{kind:"bulk",col:0x8b5a2b}},
+   {k:"tank",t:"Kochen",x:"Danach wird der Kork gekocht, um Insekten und Gerbstoffe auszuwaschen. Es folgt eine weitere Reifephase.",out:{kind:"bulk",col:0xa06a38}},
+   {k:"cutter",t:"In Streifen schneiden und sortieren",x:"Der Kork wird in Streifen geschnitten und sortiert. Qualitativ hochwertige Streifen werden nur zu Wein- und Sektkorken verarbeitet.",out:{kind:"bulk",col:0xa06a38}},
+   {k:"crusher",t:"Granulieren",x:"Das weitere Rohmaterial wird granuliert, sortiert und in Vorratsbehältern gelagert. Vom Korkmehl bis zum groben Schrot (bis ca. 22,5 mm) wird alles zu Bodenbelägen und Dämmmaterialien verarbeitet.",out:{kind:"bulk",col:0xc48d58,cork:true}},
+   {k:"mixer",t:"Dosieren und mit Bindemittel vermengen",x:"Die verschiedenen Granulate werden – je nach Optik des späteren Belags – dosiert und mit Bindemitteln vermengt.",out:{kind:"bulk",col:0xc48d58,cork:true}},
+   {k:"press",t:"Hydraulisch verdichten",x:"Die Mischung wird hydraulisch zu Blöcken verdichtet (mind. 450 kg/m³).",out:{kind:"plates",tex:"cork",block:true}},
+   {k:"oven",t:"Backen (ca. 85 °C, 2 Tage)",x:"Die Blöcke werden bei ca. 85 °C zwei Tage gebacken und anschließend abgekühlt.",out:{kind:"plates",tex:"cork",block:true}},
+   {k:"slicer",t:"Abschälen mit der Furniermaschine",x:"Nach dem Abkühlen werden die Blöcke mit einer Furniermaschine abgeschält. Für Korkfurnier werden die Blöcke aus Korkstreifen hergestellt und auf ca. 1 mm geschält.",out:{kind:"plates",tex:"cork"}},
+   {k:"stack",t:"Ruhephase 6–8 Wochen",x:"Es folgt eine Ruhephase von 6–8 Wochen. Durch das Ruhen entsteht die spätere Maßgenauigkeit des Belags.",out:{kind:"plates",tex:"cork"},plates:true},
+   {k:"grinder",t:"Schleifen",x:"Die Presskorkplatten werden geschliffen. (Korkfurnier wird in Pressen auf vorgeschliffene Presskorkplatten geleimt.)",out:{kind:"plates",tex:"cork"}},
+   {k:"cutter",t:"Auf Größe stanzen",x:"Zum Schluss werden die Platten auf Größe gestanzt. Offenporiger Kork braucht eine Endbeschichtung – werkseitig oder vor Ort.",out:{kind:"plates",tex:"cork"}}
+  ]}
+};
+
+const S=3.4, WEBY=1.0;
+const prodGroup=new THREE.Group();prodGroup.visible=false;scene.add(prodGroup);
+let curProc='lino', stepIdx=0, playing=false, playT=0, prodStations=[], prodAnims=[], orderState=null;
+
+function M(color,o={}){return new THREE.MeshStandardMaterial(Object.assign({color,roughness:.45,metalness:.35},o))}
+function box(w,h,d,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.castShadow=true;m.receiveShadow=true;return m}
+function cyl(rt,rb,h,mat,seg=28){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);m.castShadow=true;m.receiveShadow=true;return m}
+function rollerZ(r,len,mat){const m=cyl(r,r,len,mat);m.rotation.x=Math.PI/2;return m}
+function texClone(key,rep=1){const t=getTex(key).clone();t.needsUpdate=true;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,1);return t}
+function legs(g,w,h,d,mat){[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>{const l=box(.08,h,.08,mat);l.position.set(a*w/2,h/2,b*d/2);g.add(l)})}
+
+function buildStation(st,proc){
+  const g=new THREE.Group(), steel=M(0x9aa1a8), dark=M(0x4b5258), acc=M(proc.color,{metalness:.2,roughness:.5});
+  const anim=[];const W2=1.6;
+  switch(st.k){
+    case 'tank':{const v=cyl(.6,.6,1.5,acc);v.position.y=1.55;g.add(v);const top=cyl(.15,.6,.4,steel);top.position.y=2.5;g.add(top);
+      legs(g,.9,.8,.9,dark);const pipe=cyl(.07,.07,.5,steel);pipe.position.set(.55,.75,0);pipe.rotation.z=Math.PI/3;g.add(pipe);
+      const bubbles=[];for(let i=0;i<6;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.05,8,8),M(0xffffff,{transparent:true,opacity:.6}));g.add(b);bubbles.push(b)}
+      anim.push((t)=>bubbles.forEach((b,i)=>{const p=(t*.4+i/6)%1;b.position.set(Math.sin(i*2)*.3,2.5+p*.9,Math.cos(i*2)*.3);b.scale.setScalar(1-p*.5)}));break}
+    case 'kneader':case 'mixer':{const tr=box(1.3,.8,1.1,acc);tr.position.y=1.4;g.add(tr);legs(g,1.1,1.0,.9,dark);
+      const r1=rollerZ(.18,1.0,steel),r2=rollerZ(.18,1.0,steel);r1.position.set(-.3,1.85,0);r2.position.set(.3,1.85,0);g.add(r1,r2);
+      [r1,r2].forEach(r=>{for(let i=0;i<4;i++){const b=box(.06,.42,.08,steel);b.position.set(0,0,-.4+i*.27);b.rotation.y=i;r.add(b)}});
+      const mass=box(1.1,.1,.9,M(st.out&&st.out.col||0x888888,{metalness:0,roughness:.9}));mass.position.y=1.79;g.add(mass);
+      anim.push((t)=>{r1.rotation.y=t*2;r2.rotation.y=-t*2});break}
+    case 'crusher':{const h=box(1.1,.6,1,acc);h.position.y=2.0;g.add(h);legs(g,1,1.7,.8,dark);
+      const r1=rollerZ(.2,.9,steel),r2=rollerZ(.2,.9,steel);r1.position.set(-.22,1.62,0);r2.position.set(.22,1.62,0);g.add(r1,r2);
+      const chips=[];for(let i=0;i<14;i++){const c=box(.07,.07,.07,M([0x7fa257,0xb6cf8d,0x6f9249,0x9aa6b2,0xffffff][i%5],{metalness:0}));g.add(c);chips.push(c)}
+      anim.push((t)=>{r1.rotation.y=t*3;r2.rotation.y=-t*3;chips.forEach((c,i)=>{const p=(t*.6+i/14)%1;c.position.set(Math.sin(i*7)*.3,1.45-p*.4,Math.cos(i*5)*.35);c.rotation.set(t+i,t*2,i)})});break}
+    case 'calender':{const fr1=box(.12,2.0,.12,dark),fr2=fr1.clone();fr1.position.set(0,1,-.85);fr2.position.set(0,1,.85);g.add(fr1,fr2);
+      const rs=[[-.42,WEBY+.72],[0,WEBY+.36],[.42,WEBY+.72]].map(([x,y],i)=>{const r=rollerZ(.34,1.7,steel);r.position.set(x,y-(i===1?0:0),0);g.add(r);return r});
+      const low=rollerZ(.34,1.7,steel);low.position.set(0,WEBY-.36,0);g.add(low);
+      anim.push((t)=>{rs.forEach((r,i)=>r.rotation.y=(i%2?-1:1)*t*1.5);low.rotation.y=t*1.5});
+      if(st.feed){const roll=rollerZ(.4,1.5,new THREE.MeshStandardMaterial({map:texClone(st.feed),roughness:.8}));roll.position.set(-.6,WEBY-1.0+.4,0);g.add(roll);anim.push(t=>roll.rotation.y=t)}
+      break}
+    case 'unwind':case 'rewind':{legs(g,.2,WEBY+.4,1.7,dark);const tex=st.feed||((st.k==='unwind')?(st.out&&st.out.tex)||'fleece':(st.prevTex||'woodMid'));
+      const roll=rollerZ(st.k==='rewind'?.55:.5,1.5,new THREE.MeshStandardMaterial({map:texClone(tex==='clear'?'clearGrain':tex),roughness:.8,transparent:tex==='clear',opacity:tex==='clear'?.7:1}));
+      roll.position.set(0,WEBY+.5,0);g.add(roll);const ax=rollerZ(.06,1.9,steel);ax.position.copy(roll.position);g.add(ax);
+      anim.push((t)=>{roll.rotation.y=(st.k==='rewind'?1:-1)*t*.8});break}
+    case 'coater':{const tr=box(.7,.4,1.7,acc);tr.position.y=WEBY+.55;g.add(tr);const blade=box(.05,.3,1.7,steel);blade.position.set(.38,WEBY+.2,0);g.add(blade);
+      legs(g,.8,WEBY+.75,1.7,dark);const drip=cyl(.04,.04,.3,M(0xf0f0f0,{transparent:true,opacity:.7}));drip.position.set(0,WEBY+.2,0);g.add(drip);
+      anim.push((t)=>{drip.scale.y=.7+.3*Math.sin(t*6)});break}
+    case 'bark':{const trunk=cyl(.45,.55,3.2,M(0x6b4a2e,{metalness:0,roughness:1}));trunk.position.set(-.2,1.6,-.3);g.add(trunk);
+      const crown=new THREE.Mesh(new THREE.SphereGeometry(1.1,16,12),M(0x4f7a3a,{metalness:0,roughness:1}));crown.position.set(-.2,3.6,-.3);crown.scale.y=.6;g.add(crown);
+      const peeled=cyl(.47,.47,1.1,M(0xb5532d,{metalness:0,roughness:.9}));peeled.position.set(-.2,.75,-.3);g.add(peeled);
+      const pieces=[];for(let i=0;i<5;i++){const pc=box(.5,.06,.3,M(0x8b5a2b,{metalness:0,roughness:1}));g.add(pc);pieces.push(pc)}
+      anim.push((t)=>pieces.forEach((pc,i)=>{const q=(t*.25+i/5)%1;pc.position.set(.3+q*.9,1.1-q*1.0+.1,-.1+i*.08);pc.rotation.z=q*1.2}));break}
+    case 'stack':{for(let i=0;i<6;i++){const pl=box(1.2,.12,1.2,new THREE.MeshStandardMaterial({map:texClone(st.plates?'cork':'cork'),color:st.plates?0xffffff:0x9b6a3a,roughness:.9}));pl.position.set((i%2)*.05,.06+i*.13,0);pl.rotation.y=i*.08;g.add(pl)}
+      const lbl=box(.6,.3,.04,M(0xffffff,{metalness:0}));lbl.position.set(0,.6,.62);g.add(lbl);break}
+    case 'bath':{const L2=2.0;const tr=box(L2,.6,1.9,acc);tr.position.y=WEBY-.25;g.add(tr);legs(g,L2,WEBY-.5,1.8,dark);
+      const wat=new THREE.Mesh(new THREE.PlaneGeometry(L2-.1,1.8),new THREE.MeshStandardMaterial({color:0x5aa0d8,transparent:true,opacity:.55,roughness:.1}));wat.rotation.x=-Math.PI/2;wat.position.y=WEBY+.08;g.add(wat);
+      const ir=box(L2,.12,1.9,M(0x444444));ir.position.y=WEBY+.9;g.add(ir);const glow=new THREE.Mesh(new THREE.PlaneGeometry(L2,1.7),new THREE.MeshBasicMaterial({color:0xff4422,transparent:true,opacity:.4,side:THREE.DoubleSide}));glow.rotation.x=Math.PI/2;glow.position.y=WEBY+.83;g.add(glow);
+      anim.push((t)=>{wat.position.y=WEBY+.08+Math.sin(t*2)*.01;glow.material.opacity=.3+.15*Math.sin(t*3)});break}
+    case 'oven':{const L2=2.4;const top=box(L2,.12,1.9,acc);top.position.y=WEBY+.75;g.add(top);
+      const s1=box(L2,.9,.1,acc),s2=s1.clone();s1.position.set(0,WEBY+.3,-.95);s2.position.set(0,WEBY+.3,.95);g.add(s1,s2);
+      const glow=new THREE.Mesh(new THREE.PlaneGeometry(L2,1.7),new THREE.MeshBasicMaterial({color:0xff7a2a,transparent:true,opacity:.55,side:THREE.DoubleSide}));
+      glow.rotation.x=Math.PI/2;glow.position.y=WEBY+.68;g.add(glow);legs(g,L2,WEBY-.05,1.8,dark);
+      anim.push((t)=>{glow.material.opacity=.4+.2*Math.sin(t*3)});break}
+    case 'printer':{const pc=rollerZ(.45,1.7,new THREE.MeshStandardMaterial({map:texClone(st.out&&st.out.tex||'woodMid'),roughness:.5}));pc.position.set(0,WEBY+.47,0);g.add(pc);
+      const cr=rollerZ(.25,1.7,steel);cr.position.set(0,WEBY-.27,0);g.add(cr);const fr1=box(.12,1.8,.12,dark),fr2=fr1.clone();fr1.position.set(0,.9,-.9);fr2.position.set(0,.9,.9);g.add(fr1,fr2);
+      const ink=box(.5,.3,1.5,acc);ink.position.set(-.5,WEBY+1.05,0);g.add(ink);
+      if(st.feed){const roll=rollerZ(.35,1.5,new THREE.MeshStandardMaterial({map:texClone(st.feed),roughness:.8}));roll.position.set(.9,WEBY+1.3,0);g.add(roll);anim.push(t=>roll.rotation.y=-t)}
+      anim.push((t)=>{pc.rotation.y=-t*1.2;cr.rotation.y=t*2});break}
+    case 'press':{[[-.8,-.85],[.8,-.85],[-.8,.85],[.8,.85]].forEach(([x,z])=>{const p=cyl(.07,.07,2.4,steel);p.position.set(x,1.2,z);g.add(p)});
+      const bot=box(1.8,.25,1.9,dark);bot.position.y=WEBY-.14;g.add(bot);const topP=box(1.8,.3,1.9,acc);g.add(topP);const head=box(1.9,.35,2,dark);head.position.y=2.45;g.add(head);
+      if(st.out&&st.out.block){const blk=box(1.2,.9,1.2,new THREE.MeshStandardMaterial({map:texClone('esd'),roughness:.6}));blk.position.y=WEBY+.45;g.add(blk)}
+      anim.push((t)=>{const p=(Math.sin(t*1.6)+1)/2;topP.position.y=WEBY+.25+p*.9+(st.out&&st.out.block?.9:0)});break}
+    case 'chamber':{const ch=box(2.4,3.4,2.0,new THREE.MeshStandardMaterial({color:0xd9cfc0,transparent:true,opacity:.28,roughness:.9,depthWrite:false}));ch.position.y=1.7;ch.castShadow=false;g.add(ch);
+      const frame=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2.4,3.4,2.0)),new THREE.LineBasicMaterial({color:0x6b5d4a}));frame.position.y=1.7;g.add(frame);
+      const loops=[];const lm=new THREE.MeshStandardMaterial({map:texClone('lino'),roughness:.8,side:THREE.DoubleSide});
+      for(let i=0;i<6;i++){const l=box(.03,2.6,1.5,lm);l.position.set(-.9+i*.36,1.8,0);g.add(l);loops.push(l);const top=rollerZ(.08,1.6,steel);top.position.set(-.9+i*.36,3.15,0);g.add(top)}
+      const air=[];for(let i=0;i<10;i++){const a=new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),new THREE.MeshBasicMaterial({color:0xffb070,transparent:true,opacity:.7}));g.add(a);air.push(a)}
+      anim.push((t)=>{loops.forEach((l,i)=>l.position.y=1.8+Math.sin(t*.8+i)*.05);air.forEach((a,i)=>{const p=(t*.3+i/10)%1;a.position.set(-1.1+p*2.2,.5+((i*0.37)%1)*2.6,Math.sin(i)*.7)})});break}
+    case 'scatter':{const hop=cyl(.55,.1,.8,acc);hop.position.y=WEBY+1.55;g.add(hop);legs(g,1.1,WEBY+1.2,1.2,dark);
+      const parts=[];const cols=st.out&&st.out.tex==='safety'?[0x222222,0x555555,0xdddddd]:[0xc0392b,0xf1c40f,0x2e86c1,0xffffff,0x27ae60];
+      for(let i=0;i<30;i++){const p=box(.045,.045,.045,M(cols[i%cols.length],{metalness:.1}));g.add(p);parts.push(p)}
+      anim.push((t)=>parts.forEach((p,i)=>{const q=(t*.9+i/30)%1;p.position.set(Math.sin(i*3.1)*.5*q,WEBY+1.15-q*1.1,Math.cos(i*2.3)*.6*q)}));break}
+    case 'uv':{const hood=box(1.4,.5,1.9,acc);hood.position.y=WEBY+.65;g.add(hood);legs(g,1.4,WEBY+.4,1.8,dark);
+      const lamp=new THREE.Mesh(new THREE.PlaneGeometry(1.2,1.6),new THREE.MeshBasicMaterial({color:0x8fb8ff,transparent:true,opacity:.7,side:THREE.DoubleSide}));lamp.rotation.x=Math.PI/2;lamp.position.y=WEBY+.39;g.add(lamp);
+      const roll=rollerZ(.12,1.7,steel);roll.position.set(-.85,WEBY+.25,0);g.add(roll);
+      anim.push((t)=>{lamp.material.opacity=.5+.3*Math.sin(t*5);roll.rotation.y=t*2});break}
+    case 'cooling':{const cm=M(0x8fb3cc);const r1=rollerZ(.38,1.7,cm),r2=rollerZ(.38,1.7,cm);r1.position.set(-.5,WEBY-.39,0);r2.position.set(.5,WEBY+.39,0);g.add(r1,r2);legs(g,1.4,WEBY+.9,1.8,dark);
+      anim.push((t)=>{r1.rotation.y=t;r2.rotation.y=-t});break}
+    case 'cutter':case 'profiler':case 'slicer':case 'grinder':{
+      const tb=box(1.6,.2,1.8,dark);tb.position.y=WEBY-.12;g.add(tb);legs(g,1.5,WEBY-.2,1.7,dark);
+      if(st.k==='cutter'){const bl=box(.06,.5,1.8,steel);g.add(bl);const head=box(.5,.25,1.9,acc);g.add(head);
+        anim.push((t)=>{const p=(Math.sin(t*3)+1)/2;bl.position.set(0,WEBY+.3+p*.4,0);head.position.set(0,WEBY+.6+p*.4,0)})}
+      if(st.k==='profiler'){const disc=cyl(.3,.3,.06,steel);disc.position.set(0,WEBY+.05,.95);g.add(disc);const mot=box(.4,.4,.4,acc);mot.position.set(0,WEBY+.45,1.0);g.add(mot);anim.push(t=>disc.rotation.y=t*12)}
+      if(st.k==='slicer'){const bl=box(1.6,.03,1.9,steel);g.add(bl);const blk=box(1.1,.8,1.1,new THREE.MeshStandardMaterial({map:texClone('esd'),roughness:.6}));blk.position.set(-.3,WEBY+.45,0);g.add(blk);
+        anim.push((t)=>{const p=(t*.5)%1;bl.position.set(-.3+Math.sin(t*4)*.15,WEBY+.82-p*.75,0);blk.scale.y=1-p*.2})}
+      if(st.k==='grinder'){const gr=rollerZ(.3,1.7,M(0x777766,{roughness:1}));gr.position.y=WEBY-.32;g.add(gr);anim.push(t=>gr.rotation.y=t*8)}
+      break}
+    case 'extruder':{const bar=cyl(.3,.3,2.2,acc);bar.rotation.z=Math.PI/2;bar.position.set(-.3,WEBY+.3,0);g.add(bar);
+      const hop=cyl(.4,.1,.6,steel);hop.position.set(-1.1,WEBY+.85,0);g.add(hop);const die=box(.4,.5,1.7,dark);die.position.set(.95,WEBY+.1,0);g.add(die);legs(g,2,WEBY,.6,dark);
+      const scr=cyl(.18,.18,2.0,steel);scr.rotation.z=Math.PI/2;scr.position.copy(bar.position);scr.visible=false;g.add(scr);
+      const heat=[];for(let i=0;i<4;i++){const h=cyl(.32,.32,.15,M(0xff8040,{emissive:0x441100}));h.rotation.z=Math.PI/2;h.position.set(-1.0+i*.45,WEBY+.3,0);g.add(h);heat.push(h)}
+      anim.push((t)=>heat.forEach((h,i)=>h.material.emissive.setRGB(.25+.15*Math.sin(t*3+i),.07,0)));break}
+  }
+  g.userData.anim=anim;return g;
+}
+
+function buildSegment(x0,x1,out,i){
+  const g=new THREE.Group(), len=x1-x0, cx=(x0+x1)/2;
+  if(!out)return g;
+  if(out.kind==='web'){
+    const tex=texClone(out.tex,len/3);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(len,.035,1.4),new THREE.MeshStandardMaterial({map:tex,roughness:.7}));
+    m.position.set(cx,WEBY,0);m.receiveShadow=true;m.castShadow=true;g.add(m);
+    g.userData.tick=(dt)=>{tex.offset.x-=dt*.12*(3/len)*(len/3)};
+  }else{
+    const belt=box(len,.06,1.2,M(0x2f3337,{metalness:.1,roughness:.9}));belt.position.set(cx,WEBY-.06,0);g.add(belt);
+    for(let s=0;s<2;s++){const r=rollerZ(.06,1.25,M(0x9aa1a8));r.position.set(s?x1:x0,WEBY-.06,0);g.add(r)}
+    const items=[];const n=out.kind==='bulk'?10:3;
+    for(let k=0;k<n;k++){let it;
+      if(out.kind==='bulk'){const col=out.cork?[0xc48d58,0x8b5a2b,0xe0b27c,0xa06a38][k%4]:out.multi?[0x7fa257,0xb6cf8d,0x6f9249,0xc9dca4,0x9aa6b2][k%5]:out.col;it=box(.18,.12,.18,M(col,{metalness:0,roughness:.9}))}
+      else{it=box(.7,.06,.7,new THREE.MeshStandardMaterial({map:texClone(out.tex),roughness:.7}))}
+      g.add(it);items.push(it)}
+    let ph=0;g.userData.tick=(dt)=>{ph=(ph+dt*.15)%1;items.forEach((it,k)=>{const p=(ph+k/items.length)%1;it.position.set(x0+p*len,WEBY+.02,out.kind==='bulk'?Math.sin(k*2.7)*.35:0)})};
+  }
+  return g;
+}
+
+function buildProd(){
+  prodGroup.children.slice().forEach(c=>{prodGroup.remove(c);c.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material.map&&o.material.map!==undefined)o.material.map.dispose();o.material.dispose()}})});
+  prodStations=[];prodAnims=[];
+  const proc=PROCS[curProc],n=proc.steps.length;
+  const off=-(n-1)*S/2;
+  let prevTex=null;
+  proc.steps.forEach((st,i)=>{
+    st.prevTex=prevTex;
+    const g=buildStation(st,proc);g.position.x=off+i*S;prodGroup.add(g);prodStations.push(g);
+    const seg=buildSegment(off+i*S+(st.k==='oven'?1.2:.5),off+(i+1)*S-(proc.steps[i+1]&&proc.steps[i+1].k==='oven'?1.2:.5),st.out,i);
+    if(i===n-1&&st.out)seg.position.x=0;
+    prodGroup.add(seg);prodAnims.push(seg);
+    if(st.out&&st.out.tex)prevTex=st.out.tex;
+  });
+  // Grundplatte / Hallenboden
+  const floor=box(n*S+2,.04,4,M(0xcfc7ba,{metalness:0,roughness:1}));floor.position.y=.02;floor.castShadow=false;prodGroup.add(floor);
+}
+function focusStep(){
+  const n=PROCS[curProc].steps.length,off=-(n-1)*S/2,x=off+stepIdx*S;
+  const aspect=stage.clientWidth/Math.max(stage.clientHeight,1),k=Math.max(1,1.4/aspect);
+  camGoal={pos:new THREE.Vector3(x+2.6*k,WEBY+2.8*k,5.4*k),tgt:new THREE.Vector3(x,WEBY+.4,0)};
+}
+function overview(){
+  const n=PROCS[curProc].steps.length,len=n*S,aspect=stage.clientWidth/Math.max(stage.clientHeight,1);
+  const d=Math.max(10,(len/2+1)/(Math.tan(19*Math.PI/180)*aspect));
+  camGoal={pos:new THREE.Vector3(0,d*.55,d*.85),tgt:new THREE.Vector3(0,WEBY,0)};
+}
+function setProc(key){curProc=key;stepIdx=0;playing=false;orderState=null;buildProd();overview();renderProd()}
+
+function renderProd(){
+  const proc=PROCS[curProc],st=proc.steps[stepIdx],n=proc.steps.length;
+  const prods=PRODUCTS.map((p,i)=>({p,i})).filter(o=>o.p.proc===curProc);
+  pane.innerHTML=`<h2>Herstellung elastischer Beläge</h2>
+    <p class="muted" style="margin:2px 0 8px">Wähle ein Verfahren. Mit ◀ ▶ gehst du Station für Station durch die Produktionslinie.</p>
+    <div class="chips" id="procList">${Object.entries(PROCS).map(([k,p])=>`<button class="card ${k===curProc?'sel':''}" data-p="${k}"><span class="sw" style="background:#${p.color.toString(16).padStart(6,'0')}"></span><span>${p.name.replace(/ \(.*\)/,'')}</span></button>`).join('')}</div>
+    <h3>${proc.name}</h3><div class="muted" style="font-size:.8rem">📖 ${proc.kap}</div>
+    <p style="margin:4px 0;font-size:.95rem;line-height:1.4">${proc.intro}</p>
+    ${prods.length?`<p class="muted" style="font-size:.88rem;margin:4px 0">Belag dazu ansehen: ${prods.map(o=>`<a href="#" data-goto="${o.i}">${o.p.short}</a>`).join(' · ')}</p>`:`<p class="muted" style="font-size:.88rem;margin:4px 0">Beispiele: ${proc.examples.join(' · ')}</p>`}
+    <div class="row" style="align-items:center">
+      <button class="btn" id="prev" ${stepIdx===0?'disabled':''}>◀</button>
+      <b style="min-width:110px;text-align:center">Schritt ${stepIdx+1} / ${n}</b>
+      <button class="btn" id="next" ${stepIdx===n-1?'disabled':''}>▶</button>
+      <button class="btn" id="play">${playing?'⏸ Pause':'▶︎ Abspielen'}</button>
+      <button class="btn" id="ov">Übersicht</button>
+    </div>
+    <div class="info"><h4><span class="badge">${stepIdx+1}</span>${st.t}</h4><p>${st.x}</p></div>
+    <div class="merke">${proc.merke}</div>
+    <h3>Übung</h3>
+    ${orderState?orderHTML():`<button class="btn primary" id="startOrder">Schritte in die richtige Reihenfolge bringen</button>`}`;
+  pane.querySelectorAll('#procList .card').forEach(b=>b.onclick=()=>setProc(b.dataset.p));
+  pane.querySelectorAll('[data-goto]').forEach(a=>a.onclick=e=>{e.preventDefault();P=+a.dataset.goto;mode='explore';renderNav();buildProduct();renderAbout();setMode('explore');snap()});
+  $('#prev').onclick=()=>{stepIdx=Math.max(0,stepIdx-1);playing=false;focusStep();renderProd()};
+  $('#next').onclick=()=>{stepIdx=Math.min(n-1,stepIdx+1);playing=false;focusStep();renderProd()};
+  $('#play').onclick=()=>{playing=!playing;playT=0;if(playing)focusStep();renderProd()};
+  $('#ov').onclick=()=>{playing=false;overview();renderProd()};
+  const so=$('#startOrder');if(so)so.onclick=()=>{orderState={order:shuffle([...Array(n).keys()]),checked:false};renderProd()};
+  bindOrder();
+}
+function orderHTML(){
+  const steps=PROCS[curProc].steps,o=orderState;
+  const right=o.order.filter((s,i)=>s===i).length;
+  return `<p class="muted" style="font-size:.88rem;margin:0 0 6px">Sortiere mit ↑ ↓ und prüfe dann.</p>
+  <div class="cards">${o.order.map((s,i)=>`<div class="card ${o.checked?(s===i?'done':'wrong'):''}" style="cursor:default"><span class="n">${i+1}</span><span style="flex:1">${steps[s].t}</span>
+    <button class="btn" style="padding:2px 8px" data-up="${i}" ${i===0?'disabled':''}>↑</button><button class="btn" style="padding:2px 8px" data-dn="${i}" ${i===o.order.length-1?'disabled':''}>↓</button></div>`).join('')}</div>
+  <div class="row"><button class="btn primary" id="chk">Prüfen</button><button class="btn" id="mix">Neu mischen</button></div>
+  ${o.checked?`<div class="${right===steps.length?'done-box':'info'}" style="margin-top:10px">${right===steps.length?`${stars(o.tries-1)}<br><b>Alles richtig!</b> (${o.tries} Versuch${o.tries===1?'':'e'})`:`<b>${right} von ${steps.length}</b> Schritten stehen richtig. Grün = richtig, rot = noch falsch.`}</div>`:''}`;
+}
+function bindOrder(){
+  if(!orderState)return;
+  pane.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{const i=+b.dataset.up,o=orderState.order;[o[i-1],o[i]]=[o[i],o[i-1]];orderState.checked=false;renderProd()});
+  pane.querySelectorAll('[data-dn]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dn,o=orderState.order;[o[i+1],o[i]]=[o[i],o[i+1]];orderState.checked=false;renderProd()});
+  $('#chk').onclick=()=>{orderState.checked=true;orderState.tries=(orderState.tries||0)+1;renderProd()};
+  $('#mix').onclick=()=>{orderState={order:shuffle([...Array(PROCS[curProc].steps.length).keys()]),checked:false};renderProd()};
+}
+function prodTick(dt,time){
+  prodStations.forEach((g,i)=>{g.userData.anim.forEach(f=>f(time));
+    const act=i===stepIdx,pulse=act?.12+.08*Math.sin(time*4):0;
+    g.traverse(o=>{if(o.isMesh&&o.material.emissive&&!o.userData.keepEm)o.material.emissive.setRGB(pulse,pulse*.7,0)})});
+  prodAnims.forEach(s=>s.userData.tick&&s.userData.tick(dt));
+  if(playing){playT+=dt;if(playT>7){playT=0;const n=PROCS[curProc].steps.length;stepIdx=(stepIdx+1)%n;focusStep();renderProd()}}
+}
+function prodLabels(){
+  let html='';const n=PROCS[curProc].steps.length,off=-(n-1)*S/2;
+  PROCS[curProc].steps.forEach((st,i)=>{const p=proj(off+i*S,i%2?2.95:3.25,0);if(!p)return;
+    html+=`<div class="lbl ${i===stepIdx?'q':''}" style="left:${p[0]}px;top:${p[1]}px;transform:translate(-50%,-50%)"><span class="dot">${i+1}</span>${i===stepIdx||n<=7?`<span class="txt">${st.t}</span>`:''}</div>`});
+  return html;
+}
+
+
+
+/* =========================================================
+   FLIESEN AUFTEILEN (Heft 2, Kap. „Elastische Fliesen und Planken verlegen“)
+   Einheit: 1 Welteinheit = 1 m
+   ========================================================= */
+const ROOMS=[{n:"Klassenzimmer",w:4.37,d:3.62},{n:"Büro",w:3.85,d:3.10},{n:"Flur",w:5.12,d:2.24},{n:"Arztpraxis",w:4.66,d:4.18}];
+const tilesGroup=new THREE.Group();tilesGroup.visible=false;scene.add(tilesGroup);
+let T={room:0,a:.5,diag:false,xo:null,zo:null,alt:true,checked:null};
+const clipPlanes=[new THREE.Plane(new THREE.Vector3(1,0,0),0),new THREE.Plane(new THREE.Vector3(-1,0,0),0),new THREE.Plane(new THREE.Vector3(0,0,1),0),new THREE.Plane(new THREE.Vector3(0,0,-1),0)];
+renderer.localClippingEnabled=true;
+const mod=(v,m)=>((v%m)+m)%m;
+function tileStep(){return T.diag?T.a*Math.SQRT2:T.a}
+function tileEdges(){
+  const R=ROOMS[T.room],s=tileStep();
+  let l=mod(T.xo,s),r=mod(R.w-T.xo,s),b=mod(T.zo,s),f=mod(R.d-T.zo,s);
+  const fix=v=>(Math.abs(v-s)<.004||v<.004?0:v);
+  return {l:fix(l),r:fix(r),b:fix(b),f:fix(f),s};
+}
+function cm(v){return Math.round(v*100)}
+function buildTiles(){
+  tilesGroup.children.slice().forEach(c=>{tilesGroup.remove(c);c.traverse(o=>{if(o.isMesh||o.isLine){o.geometry.dispose();if(o.material.map)o.material.map.dispose();o.material.dispose()}})});
+  const R=ROOMS[T.room],W=R.w,D=R.d,ox=-W/2,oz=-D/2;
+  clipPlanes[0].constant=-ox;clipPlanes[1].constant=ox+W;clipPlanes[2].constant=-oz;clipPlanes[3].constant=oz+D;
+  // Estrich / Untergrund und Wände
+  const fl=new THREE.Mesh(new THREE.BoxGeometry(W+.3,.06,D+.3),new THREE.MeshStandardMaterial({map:texClone('screed',2),roughness:.95}));fl.position.y=-.03;fl.receiveShadow=true;tilesGroup.add(fl);
+  const wm=new THREE.MeshStandardMaterial({color:0xece6dc,roughness:.9});
+  [[0,-D/2-.075,W+.3,.15],[-W/2-.075,0,.15,D],[W/2+.075,0,.15,D]].forEach(([x,z,w,d])=>{const wl=box(w,.5,d,wm);wl.position.set(x,.25,z);tilesGroup.add(wl)});
+  // Eingang (Tür) an der Vorderwand
+  const fw1=box(W/2-.45,.5,.15,wm),fw2=fw1.clone();fw1.position.set(-W/4-.225,.25,D/2+.075);fw2.position.set(W/4+.225,.25,D/2+.075);tilesGroup.add(fw1,fw2);
+  const door=box(.9,.02,.15,new THREE.MeshStandardMaterial({color:0xb5652b}));door.position.set(0,.01,D/2+.075);tilesGroup.add(door);
+  // Fliesen
+  const a=T.a,s=tileStep(),gap=.004;
+  const tA=texClone('stoneDecor'),tB=texClone('stoneDecor');tB.rotation=Math.PI/2;tB.center.set(.5,.5);
+  const mWhole=[tA,tB].map(t=>new THREE.MeshStandardMaterial({map:t,roughness:.6,clippingPlanes:clipPlanes}));
+  const mCut=[tA,tB].map(t=>new THREE.MeshStandardMaterial({map:t,color:0xffc89a,roughness:.6,clippingPlanes:clipPlanes}));
+  const geo=new THREE.BoxGeometry(a-gap,.02,a-gap);
+  const xs=ox+T.xo,zs=oz+T.zo,inside=(x,z)=>x>=ox-1e-4&&x<=ox+W+1e-4&&z>=oz-1e-4&&z<=oz+D+1e-4;
+  const nI=Math.ceil(W/s)+3,nJ=Math.ceil(D/s)+3;
+  const place=(cx,cz,k)=>{const h=T.diag?a*Math.SQRT2/2:a/2;
+    if(cx+h<ox||cx-h>ox+W||cz+h<oz||cz-h>oz+D)return;
+    const corners=T.diag?[[cx-h,cz],[cx+h,cz],[cx,cz-h],[cx,cz+h]]:[[cx-h,cz-h],[cx+h,cz-h],[cx-h,cz+h],[cx+h,cz+h]];
+    const whole=corners.every(([x,z])=>inside(x,z));
+    const alt=T.alt?(k%2):0;
+    const t=new THREE.Mesh(geo,(whole?mWhole:mCut)[alt]);t.position.set(cx,.012,cz);if(T.diag)t.rotation.y=Math.PI/4;t.receiveShadow=true;tilesGroup.add(t)};
+  for(let i=-nI;i<=nI;i++)for(let j=-nJ;j<=nJ;j++){
+    place(xs+(i+.5)*s,zs+(j+.5)*s,i+j);
+    if(T.diag)place(xs+i*s,zs+j*s,i+j+1);
+  }
+  // Schnurschläge und Anfangspunkt
+  const lm1=new THREE.LineBasicMaterial({color:0xd62828}),lm2=new THREE.LineBasicMaterial({color:0x2d5d8f});
+  const ln=(p1,p2,m)=>{const g=new THREE.BufferGeometry().setFromPoints([p1,p2]);const l=new THREE.Line(g,m);tilesGroup.add(l)};
+  ln(new THREE.Vector3(ox,.03,zs),new THREE.Vector3(ox+W,.03,zs),lm1);
+  ln(new THREE.Vector3(xs,.03,oz),new THREE.Vector3(xs,.03,oz+D),lm2);
+  const mk=cyl(.05,.05,.04,new THREE.MeshStandardMaterial({color:0xd62828}));mk.position.set(xs,.04,zs);tilesGroup.add(mk);
+}
+function tilesOptimal(){
+  const R=ROOMS[T.room],s=tileStep();
+  let r=mod(R.w,s)/2;if(r<.1)r+=s/2;          // Randfliesen links/rechts gleich groß, mind. 10 cm
+  const xo=r+Math.floor((R.w/2-r)/s)*s;      // Linie möglichst in Raummitte
+  let zo=mod(R.d,s);                          // vorne (Eingang) ganze Fliesen, hinten der Rest …
+  if(zo<.1)zo=(zo+s)/2;                       // … außer der Rest wäre < 10 cm: dann vorne und hinten gleich große Randfliesen
+  zo=zo+Math.floor((R.d/2-zo)/s)*s;
+  return {xo,zo};
+}
+function renderTiles(){
+  const R=ROOMS[T.room],e=tileEdges(),s=e.s;
+  const restD=mod(R.d,s),okLR=Math.abs(e.l-e.r)<.011, okMin=[e.l,e.r,e.b,e.f].every(v=>v===0||v>=.099), okF=e.f===0||(restD<.1&&Math.abs(e.f-e.b)<.011);
+  pane.innerHTML=`<h2>Fliesen aufteilen</h2><div class="muted" style="font-size:.8rem">📖 Heft 2 – Elastische Fliesen und Planken verlegen</div>
+    <div class="task">Verschiebe die Schnurschläge so, dass <b>links und rechts gleich große Randfliesen</b> (mind. 10 cm) entstehen und am <b>Eingang ganze Fliesen</b> liegen.</div>
+    <div class="levels">Verlegeart: <span class="seg"><button data-d="0" class="${!T.diag?'on':''}">Parallel</button><button data-d="1" class="${T.diag?'on':''}">Diagonal</button></span></div>
+    <label class="ctl">Raum <select id="tRoom">${ROOMS.map((r,i)=>`<option value="${i}" ${i===T.room?'selected':''}>${r.n} – ${String(r.w).replace('.',',')} × ${String(r.d).replace('.',',')} m</option>`).join('')}</select></label>
+    <label class="ctl">Fliese <select id="tSize">${[.3,.5,.6].map(v=>`<option value="${v}" ${v===T.a?'selected':''}>${cm(v)} × ${cm(v)} cm</option>`).join('')}</select></label>
+    ${T.diag?`<p class="muted" style="margin:4px 0">Bei der Diagonalverlegung rechnest du mit der Fliesendiagonale: ${cm(T.a)} cm × 1,414 = <b>${(T.a*141.4).toFixed(1).replace('.',',')} cm</b>.</p>`:''}
+    <label class="ctl">Schnurschlag ↔ (blau): <input type="range" id="tX" min="0" max="${Math.round(R.w*100)}" step="1" value="${cm(T.xo)}"><b style="min-width:58px">${cm(T.xo)} cm</b></label>
+    <label class="ctl">Schnurschlag ↕ (rot): <input type="range" id="tZ" min="0" max="${Math.round(R.d*100)}" step="1" value="${cm(T.zo)}"><b style="min-width:58px">${cm(T.zo)} cm</b></label>
+    <table style="width:100%;font-size:.92rem;border-collapse:collapse;margin-top:6px">
+      <tr><td>Randfliese links</td><td><b>${cm(e.l)} cm</b></td><td>rechts</td><td><b>${cm(e.r)} cm</b></td></tr>
+      <tr><td>hinten (Hauptwand)</td><td><b>${cm(e.b)} cm</b></td><td>vorne (Eingang)</td><td><b>${e.f===0?'ganze Fliese':cm(e.f)+' cm'}</b></td></tr></table>
+    <label class="ctl"><input type="checkbox" id="tAlt" ${T.alt?'checked':''}> wechselnde Laufrichtung (Kreuzfuge)</label>
+    <div class="row"><button class="btn primary" id="tChk">Prüfen</button><button class="btn" id="tHelp">💡 Lösungsweg</button><button class="btn" id="tNew">Neue Aufgabe</button></div>
+    ${T.checked?`<div class="${okLR&&okMin&&okF?'done-box':'info'}" style="margin-top:10px">
+      ${okLR?'✅':'❌'} Randfliesen links und rechts gleich groß<br>
+      ${okMin?'✅':'❌'} alle Randfliesen mindestens 10 cm (FCIÖ-Merkblatt 21)<br>
+      ${okF?'✅':'❌'} am Eingang ganze Fliesen${restD<.1?' (hier nicht möglich, weil hinten sonst ein Streifen unter 10 cm bliebe – dann vorne und hinten gleich groß)':''}
+      ${okLR&&okMin&&okF?'<br><b>Sehr gut aufgeteilt!</b>':''}</div>`:''}
+    <div id="tHelpBox"></div>
+    <div class="merke">${T.diag?'Diagonalverlegung: Anfangspunkt wie bei der Parallelverlegung, aber mit der Fliesendiagonale (Breite × 1,414). Die erste Fliese wird mit gegenüberliegenden Ecken auf dem Schnurschlag fixiert. Randfliesen schneidest du mit einer quadratischen Schablone (Kantenlänge = Fliesendiagonale).':'Parallelverlegung: Vom Eingang aus parallel zur Hauptwand eine Linie schnuren, sodass an beiden gegenüberliegenden Wänden gleich große Randfliesen entstehen. Im rechten Winkel dazu eine Hilfslinie – dort wird die erste Fliese fixiert. Statt schmaler Randstücke kann ein Fries verlegt werden.'}</div>`;
+  pane.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{T.diag=b.dataset.d==='1';T.checked=null;resetTiles(true)});
+  $('#tRoom').onchange=e=>{T.room=+e.target.value;T.checked=null;resetTiles(true)};
+  $('#tSize').onchange=e=>{T.a=+e.target.value;T.checked=null;resetTiles(true)};
+  $('#tX').oninput=e=>{T.xo=+e.target.value/100;T.checked=null;buildTiles();renderTilesLive()};
+  $('#tZ').oninput=e=>{T.zo=+e.target.value/100;T.checked=null;buildTiles();renderTilesLive()};
+  $('#tX').onchange=$('#tZ').onchange=()=>renderTiles();
+  $('#tAlt').onchange=e=>{T.alt=e.target.checked;buildTiles()};
+  $('#tChk').onclick=()=>{T.checked=true;renderTiles()};
+  $('#tNew').onclick=()=>{T.room=(T.room+1)%ROOMS.length;T.checked=null;resetTiles(true)};
+  $('#tHelp').onclick=()=>{const R=ROOMS[T.room],o=tilesOptimal(),s=tileStep(),r=mod(R.w,s);
+    $('#tHelpBox').innerHTML=`<div class="info"><b>Lösungsweg</b><p>Raumbreite ${cm(R.w)} cm : ${T.diag?'Diagonale ':'Fliese '}${(s*100).toFixed(1).replace('.',',')} cm → Rest <b>${(r*100).toFixed(1).replace('.',',')} cm</b>.</p>
+    <p>Rest halbieren → je Seite ${(r*50).toFixed(1).replace('.',',')} cm.${r/2<.1?` Das ist kleiner als 10 cm – deshalb eine halbe ${T.diag?'Diagonale':'Fliese'} dazunehmen: je Seite ${((r+s)/2*100).toFixed(1).replace('.',',')} cm.`:''}</p>
+    <p>Blauen Schnurschlag z. B. auf <b>${cm(o.xo)} cm</b> setzen, roten auf <b>${cm(o.zo)} cm</b> (dann liegen vorne ganze Fliesen).</p>
+    <button class="btn" id="tApply">Lösung übernehmen</button></div>`;
+    $('#tApply').onclick=()=>{T.xo=o.xo;T.zo=o.zo;T.checked=true;buildTiles();renderTiles()}};
+}
+function renderTilesLive(){const e=tileEdges();const bs=pane.querySelectorAll('label.ctl b');if(bs[0])bs[0].textContent=cm(T.xo)+' cm';if(bs[1])bs[1].textContent=cm(T.zo)+' cm';
+  const tds=pane.querySelectorAll('table td b');if(tds.length===4){tds[0].textContent=cm(e.l)+' cm';tds[1].textContent=cm(e.r)+' cm';tds[2].textContent=cm(e.b)+' cm';tds[3].textContent=e.f===0?'ganze Fliese':cm(e.f)+' cm'}}
+function resetTiles(keepView){const R=ROOMS[T.room];T.xo=Math.round(R.w*30)/100;T.zo=Math.round(R.d*40)/100;buildTiles();renderTiles();if(!keepView||true)tilesCam()}
+function tilesCam(){const R=ROOMS[T.room],aspect=stage.clientWidth/Math.max(stage.clientHeight,1);const d=Math.max(5,(Math.max(R.w,R.d)/2+.8)/(Math.tan(19*Math.PI/180)*Math.min(aspect,1.3)));
+  camGoal={pos:new THREE.Vector3(0,d*.9,d*.45),tgt:new THREE.Vector3(0,0,0)}}
+
+/* =========================================================
+   ANLEITUNG & AUFTRÄGE (passend zum Skriptum) + Direktlinks
+   Direktlinks: #anleitung · #bau-<id> · #erkunden-<id> · #benennen-<id> · #herstellung-<verfahren>
+   ========================================================= */
+const AUFTRAEGE=[
+ {kap:"Heft 1 · Kap. 1",t:"Aufbau und Schichten",a:"Baue den Belag „Schichten allgemein“ auf (Stufe Mittel). Wechsle zu „Benennen“ und benenne alle fünf Schichten (Stufe Schwer).",go:[["bau-schichten","Bauen"],["benennen-schichten","Benennen"]]},
+ {kap:"Heft 1 · Kap. 3",t:"Herstellung von PVC-Belägen",a:"Gehe das Kalander-, Press- und Streichverfahren Station für Station durch. Löse bei jedem Verfahren die Reihenfolge-Übung.",go:[["herstellung-kalander","Kalander"],["herstellung-press","Pressen"],["herstellung-streich","Streichen"]]},
+ {kap:"Heft 1 · Kap. 3",t:"CV-Belag",a:"Baue den geschäumten PVC-Belag (CV) auf. Erkläre im Erkunden-Modus, welche Schicht das Relief bildet.",go:[["bau-cv","Bauen"],["erkunden-cv","Erkunden"]]},
+ {kap:"Heft 1 · Kap. 4",t:"Linoleum",a:"Ordne die Herstellungsschritte von Linoleum. Erkunde danach Marmoleum und vergleiche es mit Jokaleum.",go:[["herstellung-lino","Herstellung"],["erkunden-marmoleum","Marmoleum"],["erkunden-jokaleum","Jokaleum"]]},
+ {kap:"Heft 1 · Kap. 5",t:"Elastomer- und Gummibeläge",a:"Baue den profilierten und den heterogenen Elastomerbelag. Löse die Reihenfolge-Übung zur Herstellung.",go:[["bau-elastomer-noppen","Profiliert"],["bau-elastomer-hetero","Heterogen"],["herstellung-kautschuk","Herstellung"]]},
+ {kap:"Heft 1 · Kap. 6",t:"Korkböden",a:"Ordne die Herstellung von Korkbelägen. Baue danach den Kork-Fertigfußboden und vergleiche ihn mit der Korkfliese mit PVC-Nutzschicht.",go:[["herstellung-kork","Herstellung"],["bau-kork-fertig","Fertigfußboden"],["bau-kork-pvc","Korkfliese"]]},
+ {kap:"Heft 1 · Kap. 7",t:"Designbeläge und MMF",a:"Baue PVC-Designbelag, Rigid-Designbelag, PUR-Designbelag, Multilayer und Linoleum-Paneel. Vergleiche: Woraus besteht jeweils der Träger?",go:[["bau-design","PVC-Design"],["bau-rigid","Rigid"],["bau-pur-design","PUR"],["bau-multilayer","MMF"],["bau-lino-paneel","Lino-Paneel"]]},
+ {kap:"Heft 2 · Kap. 1–2",t:"Untergrund und Kleben",a:"Baue den verklebten Systemaufbau von unten nach oben. Begründe, warum vor dem Nassbett gespachtelt wird.",go:[["bau-verklebt","Bauen"]]},
+ {kap:"Heft 2 · Bes. Verlegetechniken",t:"Ableitfähige Verklebung",a:"Baue die ableitfähige Verklebung. Notiere Abstand der Kupferbänder und Fläche je Erdungsstelle.",go:[["bau-ableitfaehig","Bauen"],["herstellung-press","Herstellung Belag"]]},
+ {kap:"Heft 2 · Fliesen verlegen",t:"Fliesen aufteilen",a:"Teile den Raum für eine Parallel- und eine Diagonalverlegung auf: gleich große Randfliesen (mind. 10 cm), am Eingang ganze Fliesen. Prüfe mit „Prüfen“.",go:[["fliesen-parallel","Parallel"],["fliesen-diagonal","Diagonal"]]},
+ {kap:"Heft 2 · Designbeläge",t:"Klick schwimmend verlegen",a:"Baue den schwimmenden Aufbau. Zeige mit „Zwei Dielen verbinden“, wie die Klickverbindung einrastet.",go:[["bau-klick","Bauen"],["erkunden-klick","Verbindung"]]}
+];
+function guideDone(){try{return JSON.parse(localStorage.getItem('bb3d_guide')||'[]')}catch(e){return[]}}
+function renderGuide(){
+  const done=guideDone();
+  $('#guideBody').innerHTML=`<h2>Anleitung – 3D-Baukasten Elastische Beläge</h2>
+  <p class="muted">Begleitet das Skriptum „Elastische Beläge“ Heft 1 (Material) und Heft 2 (Verlegung).</p>
+  <h3>So bedienst du den Baukasten</h3>
+  <ol>
+   <li><b>Belag wählen:</b> oben in der Leiste – Lehrbuch-Aufbauten, Skriptum Heft 1, Heft 2 (Verlegung) und Beispiele von Forbo und INKU.</li>
+   <li><b>Bauen:</b> Ziehe die Schichten von <b>unten nach oben</b> auf die helle Fläche (oder antippen). Stufe Leicht / Mittel / Schwer wählen.</li>
+   <li><b>Erkunden:</b> Schicht anklicken → Erklärung. Regler „Explosionsansicht“ zieht den Aufbau auseinander. „Stirnseite“ zeigt den Querschnitt.</li>
+   <li><b>Benennen:</b> Die markierte Schicht (orange „?“) richtig benennen.</li>
+   <li><b>Herstellung:</b> Verfahren wählen, mit ◀ ▶ von Station zu Station. Danach die Reihenfolge-Übung lösen.</li>
+   <li><b>Fliesen:</b> Raum und Fliese wählen, die Schnurschläge verschieben, bis die Aufteilung stimmt – dann „Prüfen“.</li>
+   <li><b>3D-Ansicht:</b> ziehen = drehen, Mausrad oder zwei Finger = zoomen, Rechtsklick = verschieben.</li>
+  </ol>
+  <h3>Aufträge zum Skriptum</h3>
+  <table><tr><th>✓</th><th>Kapitel</th><th>Auftrag</th><th>Öffnen</th></tr>
+  ${AUFTRAEGE.map((x,i)=>`<tr class="${done.includes(i)?'done':''}"><td><input type="checkbox" data-gi="${i}" ${done.includes(i)?'checked':''} aria-label="erledigt"></td><td class="kap">${x.kap}</td><td><b>${x.t}</b><br>${x.a}</td><td>${x.go.map(g=>`<button class="go" data-h="${g[0]}">${g[1]}</button>`).join('')}</td></tr>`).join('')}
+  </table>
+  <p class="muted" style="font-size:.85rem;margin-top:12px">Häkchen werden nur in diesem Browser gespeichert. Ergebnisse (Sterne, Zeit, Fehler) überträgst du in dein Skriptum bzw. deinen Lernpass.</p>`;
+  $('#guideBody').querySelectorAll('[data-gi]').forEach(c=>c.onchange=()=>{let d=guideDone();const i=+c.dataset.gi;d=c.checked?[...new Set([...d,i])]:d.filter(v=>v!==i);try{localStorage.setItem('bb3d_guide',JSON.stringify(d))}catch(e){}renderGuide()});
+  $('#guideBody').querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{closeGuide();location.hash=b.dataset.h});
+}
+function openGuide(){renderGuide();$('#guide').hidden=false}
+function closeGuide(){$('#guide').hidden=true;if(location.hash==='#anleitung')location.hash=''}
+$('#guideBtn').onclick=()=>{location.hash='anleitung'};
+$('#guideClose').onclick=closeGuide;
+$('#guide').onclick=e=>{if(e.target.id==='guide')closeGuide()};
+function applyHash(){
+  const h=decodeURIComponent(location.hash.replace('#',''));if(!h)return;
+  if(h==='anleitung'){openGuide();return}
+  if(h==='fliesen-parallel'||h==='fliesen-diagonal'){T.diag=h.endsWith('diagonal');setMode('tiles');return}
+  const m=h.match(/^(bau|erkunden|benennen|herstellung)-(.+)$/);if(!m)return;
+  const modeMap={bau:'build',erkunden:'explore',benennen:'name',herstellung:'prod'};
+  if(m[1]==='herstellung'){if(!PROCS[m[2]])return;if(mode!=='prod')setMode('prod');setProc(m[2]);return}
+  const i=PRODUCTS.findIndex(p=>p.id===m[2]);if(i<0)return;
+  mode=modeMap[m[1]];selectProduct(i);
+  if(m[1]==='erkunden'&&m[2]==='klick'){setTimeout(()=>{const nb=$('#nb');if(nb)nb.click()},400)}
+}
+window.addEventListener('hashchange',applyHash);
+
+/* Start */
+resize();
+Object.keys(TEX).forEach(getTex);
+renderNav();
+selectProduct(0);
+camera.position.copy(camGoal.pos);controls.target.copy(camGoal.tgt);
+applyHash();
+loop();
+</script>
+</body>
+</html>
