@@ -946,7 +946,7 @@ function aimCamera(v){
   if(mode==='prod'){overview();renderViews();return}
   if(mode==='tiles'){tilesCam();renderViews();return}
   if(v)view=v;
-  const aspect=stage.clientWidth/Math.max(stage.clientHeight,1),k=Math.max(1,1.55/aspect);
+  const aspect=ASP(),k=Math.max(1,1.55/aspect);
   if(mode==='build'){view='schraeg';const d=Math.max(14,9.4/(Math.tan(19*Math.PI/180)*aspect));
     camGoal={pos:new THREE.Vector3(0,.69*d,.72*d),tgt:new THREE.Vector3(0,0,.3)};renderViews();return}
   const box=modelBox(),c=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
@@ -1265,7 +1265,8 @@ function updateLabels(){
   });
   labelsEl.innerHTML=html;
 }
-function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+function ASP(){const w=stage.clientWidth,h=stage.clientHeight;return (w>20&&h>20)?w/h:1.5}
+function resize(){const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 window.addEventListener('resize',()=>{resize();aimCamera()});
 
 const clock=new THREE.Clock();let time=0;
@@ -1287,6 +1288,7 @@ function loop(){
   if(neighbor){const nd=neighbor.userData;nd.t+=dt;if(nd.t>.6)neighbor.position.z+=(nd.to-neighbor.position.z)*k*.6}
   pad.visible=mode==='build';root.visible=mode!=='prod'&&mode!=='tiles';prodGroup.visible=mode==='prod';tilesGroup.visible=mode==='tiles';
   if(mode==='prod')prodTick(dt,time);
+  if(!isFinite(camera.position.x+camera.position.y+camera.position.z)||!isFinite(controls.target.x+controls.target.y+controls.target.z)){camera.position.set(6,5,8);controls.target.set(0,0,0);aimCamera()}
   if(camGoal){camera.position.lerp(camGoal.pos,k*.8);controls.target.lerp(camGoal.tgt,k*.8);if(camera.position.distanceTo(camGoal.pos)<.02)camGoal=null}
   controls.update();
   renderer.render(scene,camera);
@@ -1530,11 +1532,11 @@ function buildProd(){
 }
 function focusStep(){
   const n=PROCS[curProc].steps.length,off=-(n-1)*S/2,x=off+stepIdx*S;
-  const aspect=stage.clientWidth/Math.max(stage.clientHeight,1),k=Math.max(1,1.4/aspect);
+  const aspect=ASP(),k=Math.max(1,1.4/aspect);
   camGoal={pos:new THREE.Vector3(x+2.6*k,WEBY+2.8*k,5.4*k),tgt:new THREE.Vector3(x,WEBY+.4,0)};
 }
 function overview(){
-  const n=PROCS[curProc].steps.length,len=n*S,aspect=stage.clientWidth/Math.max(stage.clientHeight,1);
+  const n=PROCS[curProc].steps.length,len=n*S,aspect=ASP();
   const d=Math.max(10,(len/2+1)/(Math.tan(19*Math.PI/180)*aspect));
   camGoal={pos:new THREE.Vector3(0,d*.55,d*.85),tgt:new THREE.Vector3(0,WEBY,0)};
 }
@@ -1642,7 +1644,7 @@ function buildTiles(){
     if(cx+h<ox||cx-h>ox+W||cz+h<oz||cz-h>oz+D)return;
     const corners=T.diag?[[cx-h,cz],[cx+h,cz],[cx,cz-h],[cx,cz+h]]:[[cx-h,cz-h],[cx+h,cz-h],[cx-h,cz+h],[cx+h,cz+h]];
     const whole=corners.every(([x,z])=>inside(x,z));
-    const alt=T.alt?(k%2):0;
+    const alt=T.alt?(((k%2)+2)%2):0;
     const t=new THREE.Mesh(geo,(whole?mWhole:mCut)[alt]);t.position.set(cx,.012,cz);if(T.diag)t.rotation.y=Math.PI/4;t.receiveShadow=true;tilesGroup.add(t)};
   for(let i=-nI;i<=nI;i++)for(let j=-nJ;j<=nJ;j++){
     place(xs+(i+.5)*s,zs+(j+.5)*s,i+j);
@@ -1706,7 +1708,7 @@ function renderTiles(){
 function renderTilesLive(){const e=tileEdges();const bs=pane.querySelectorAll('label.ctl b');if(bs[0])bs[0].textContent=cm(T.xo)+' cm';if(bs[1])bs[1].textContent=cm(T.zo)+' cm';
   const tds=pane.querySelectorAll('table td b');if(tds.length===4){tds[0].textContent=cm(e.l)+' cm';tds[1].textContent=cm(e.r)+' cm';tds[2].textContent=cm(e.b)+' cm';tds[3].textContent=e.f===0?'ganze Fliese':cm(e.f)+' cm'}}
 function resetTiles(keepView){const R=ROOMS[T.room];T.xo=Math.round(R.w*30)/100;T.zo=Math.round(R.d*40)/100;buildTiles();renderTiles();if(!keepView||true)tilesCam()}
-function tilesCam(){const R=ROOMS[T.room],aspect=stage.clientWidth/Math.max(stage.clientHeight,1);const d=Math.max(5,(Math.max(R.w,R.d)/2+.8)/(Math.tan(19*Math.PI/180)*Math.min(aspect,1.3)));
+function tilesCam(){const R=ROOMS[T.room],aspect=ASP();const d=Math.max(5,(Math.max(R.w,R.d)/2+.8)/(Math.tan(19*Math.PI/180)*Math.min(aspect,1.3)));
   camGoal={pos:new THREE.Vector3(0,d*.9,d*.45),tgt:new THREE.Vector3(0,0,0)}}
 
 /* =========================================================
