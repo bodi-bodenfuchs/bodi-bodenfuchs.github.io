@@ -491,7 +491,7 @@ function modelBox(){const b=new THREE.Box3();meshes.forEach(m=>{const u=m.userDa
   if(neighbor)b.expandByPoint(new THREE.Vector3(0,0,W*1.5));return b}
 function aimCamera(v){
   if(v)view=v;
-  const aspect=stage.clientWidth/Math.max(stage.clientHeight,1),k=Math.max(1,1.55/aspect);
+  const aspect=ASP(),k=Math.max(1,1.55/aspect);
   if(mode==='build'){view='schraeg';const d=Math.max(14,9.4/(Math.tan(19*Math.PI/180)*aspect));
     camGoal={pos:new THREE.Vector3(0,.69*d,.72*d),tgt:new THREE.Vector3(0,0,.3)};renderViews();return}
   const box=modelBox(),c=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
@@ -790,7 +790,8 @@ function updateLabels(){
   });
   labelsEl.innerHTML=html;
 }
-function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+function ASP(){const w=stage.clientWidth,h=stage.clientHeight;return (w>20&&h>20)?w/h:1.5}
+function resize(){const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 window.addEventListener('resize',()=>{resize();aimCamera()});
 
 const clock=new THREE.Clock();let time=0;
@@ -811,6 +812,7 @@ function loop(){
   });
   if(neighbor){const nd=neighbor.userData;nd.t+=dt;if(nd.t>.6)neighbor.position.z+=(nd.to-neighbor.position.z)*k*.6}
   pad.visible=mode==='build';
+  if(!isFinite(camera.position.x+camera.position.y+camera.position.z)||!isFinite(controls.target.x+controls.target.y+controls.target.z)){camera.position.set(6,5,8);controls.target.set(0,0,0);aimCamera()}
   if(camGoal){camera.position.lerp(camGoal.pos,k*.8);controls.target.lerp(camGoal.tgt,k*.8);if(camera.position.distanceTo(camGoal.pos)<.02)camGoal=null}
   controls.update();
   renderer.render(scene,camera);
